@@ -1,0 +1,25 @@
+{
+  "name": "Дальнобойщики",
+  "short_name": "Дальнобой",
+  "description": "Дальняя поездка по дороге с рекламой вашего бренда",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "theme_color": "#1a1a2e",
+  "background_color": "#000000",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "games"]
+}

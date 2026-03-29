@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+  <meta name="apple-mobile-web-app-title" content="Дальнобойщики">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a2e">
+  <link rel="manifest" href="manifest.json">
+  <title>Дальнобойщики</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Oswald:wght@300;400;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --sky-top: #0a0a1a;
+      --sky-bot: #1a1a3e;
+      --road-near: #2a2a2a;
+      --road-far: #1a1a1a;
+      --asphalt: #333;
+      --stripe: #f5c518;
+      --grass: #1a3a1a;
+      --sun: #ff8c00;
+    }
+
+    body {
+      font-family: 'Oswald', sans-serif;
+      background: #000;
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ===== SCENE ===== */
+    #scene {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    canvas#road {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    /* ===== SPEEDOMETER HUD ===== */
+    #hud {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .hud-box {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,200,50,0.3);
+      border-radius: 10px;
+      padding: 6px 14px;
+      color: #f5c518;
+      font-family: 'Russo One', sans-serif;
+      font-size: 13px;
+      backdrop-filter: blur(6px);
+      text-align: center;
+    }
+    .hud-box .val {
+      font-size: 22px;
+      display: block;
+      letter-spacing: 1px;
+    }
+    .hud-box .lbl {
+      font-size: 9px;
+      opacity: 0.6;
+      letter-spacing: 2px;
+    }
+
+    /* ===== MUSIC PLAYER ===== */
+    #player {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    #track-name {
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,200,50,0.25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      color: #f5c518;
+      font-size: 12px;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    #track-name.show { opacity: 1; }
+
+    .player-btns {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pbtn {
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,200,50,0.3);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: #f5c518;
+      font-size: 16px;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pbtn:active { transform: scale(0.9); background: rgba(245,197,24,0.2); }
+
+    #upload-btn {
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,200,50,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      color: #f5c518;
+      font-size: 11px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      letter-spacing: 1px;
+      transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #upload-btn:active { background: rgba(245,197,24,0.15); }
+    #file-input { display: none; }
+
+    /* ===== BILLBOARD UPLOAD ===== */
+    #billboard-upload {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 200;
+    }
+    #bb-btn {
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,200,50,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      color: #f5c518;
+      font-size: 11px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      letter-spacing: 1px;
+      transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #bb-btn:active { background: rgba(245,197,24,0.15); }
+    #bb-file { display: none; }
+
+    /* ===== INSTALL PROMPT ===== */
+    #install-bar {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      border: 1px solid rgba(245,197,24,0.4);
+      border-radius: 14px;
+      padding: 10px 20px;
+      color: #f5c518;
+      font-size: 13px;
+      text-align: center;
+      z-index: 300;
+      display: none;
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    #install-bar.show { display: block; }
+
+    /* ===== TIME OF DAY label ===== */
+    #tod-label {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+      padding: 4px 14px;
+      color: rgba(255,200,50,0.7);
+      font-size: 10px;
+      letter-spacing: 3px;
+      z-index: 100;
+      pointer-events: none;
+      text-transform: uppercase;
+    }
+
+    /* ===== RAIN ===== */
+    #rain-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 2s;
+    }
+    #rain-canvas.active { opacity: 1; }
+
+    /* ===== VIGNETTE ===== */
+    #vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+      z-index: 60;
+    }
+
+    /* ===== DASHBOARD bottom strip ===== */
+    #dash {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 70px;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 80;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="scene">
+    <canvas id="road"></canvas>
+    <canvas id="rain-canvas"></canvas>
+    <div id="vignette"></div>
+    <div id="dash"></div>
+  </div>
+
+  <div id="tod-label">РАССВЕТ</div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-box">
+      <span class="val" id="speed-val">87</span>
+      <span class="lbl">КМ/Ч</span>
+    </div>
+    <div class="hud-box">
+      <span class="val" id="km-val">0</span>
+      <span class="lbl">КМ</span>
+    </div>
+    <div class="hud-box">
+      <span class="val" id="time-val">05:42</span>
+      <span class="lbl">ВРЕМЯ</span>
+    </div>
+  </div>
+
+  <!-- Billboard upload -->
+  <div id="billboard-upload">
+    <div id="bb-btn">📋 РЕКЛАМА</div>
+    <input type="file" id="bb-file" accept="image/*" multiple>
+  </div>
+
+  <!-- Music player -->
+  <div id="player">
+    <div id="track-name">♪ нет треков</div>
+    <div class="player-btns">
+      <div class="pbtn" id="prev-btn">⏮</div>
+      <div class="pbtn" id="play-btn">▶</div>
+      <div class="pbtn" id="next-btn">⏭</div>
+    </div>
+    <div id="upload-btn">🎵 ЗАГРУЗИТЬ МУЗЫКУ</div>
+    <input type="file" id="file-input" accept="audio/*" multiple>
+  </div>
+
+  <div id="install-bar">📲 Установить на рабочий стол</div>
+</div>
+
+<audio id="audio" loop></audio>
+
+<script>
+// =============================================
+// CANVAS SETUP
+// =============================================
+const canvas = document.getElementById('road');
+const ctx = canvas.getContext('2d');
+const rainCanvas = document.getElementById('rain-canvas');
+const rctx = rainCanvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  rainCanvas.width = window.innerWidth;
+  rainCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// =============================================
+// TIME OF DAY SYSTEM
+// =============================================
+// Cycle: dawn → day → dusk → night → dawn (total 10min)
+const TOD_CYCLE = 600; // seconds
+let gameTime = 0; // seconds since start (in game time, 1s real = 3s game)
+const REAL_SPEED = 3; // game seconds per real second
+
+const TIMES_OF_DAY = [
+  { name: 'РАССВЕТ',  skyTop: '#0a0520', skyBot: '#7b3f00', horizonGlow: '#ff6b35', sunColor: '#ff8c00', ambientLight: 0.4, fogColor: 'rgba(255,100,30,0.15)' },
+  { name: 'УТРО',    skyTop: '#1a6abf', skyBot: '#87ceeb', horizonGlow: '#ffd700', sunColor: '#ffe066', ambientLight: 0.85, fogColor: 'rgba(200,220,255,0.1)' },
+  { name: 'ПОЛДЕНЬ',  skyTop: '#1565c0', skyBot: '#42a5f5', horizonGlow: '#e3f2fd', sunColor: '#fff9c4', ambientLight: 1.0, fogColor: 'rgba(200,230,255,0.05)' },
+  { name: 'ВЕЧЕР',   skyTop: '#1a0a30', skyBot: '#7b1fa2', horizonGlow: '#ff5722', sunColor: '#ff7043', ambientLight: 0.55, fogColor: 'rgba(200,50,20,0.12)' },
+  { name: 'НОЧЬ',    skyTop: '#000010', skyBot: '#000830', horizonGlow: '#0a0a40', sunColor: '#c0c0ff', ambientLight: 0.15, fogColor: 'rgba(10,10,50,0.2)' },
+];
+
+function getTOD(t) {
+  const phase = (t % TOD_CYCLE) / TOD_CYCLE; // 0..1
+  const segment = phase * TIMES_OF_DAY.length;
+  const idx = Math.floor(segment) % TIMES_OF_DAY.length;
+  const next = (idx + 1) % TIMES_OF_DAY.length;
+  const f = segment - Math.floor(segment);
+  return { idx, next, f, tod: TIMES_OF_DAY[idx], todNext: TIMES_OF_DAY[next] };
+}
+
+function lerpColor(c1, c2, t) {
+  const p1 = parseColor(c1), p2 = parseColor(c2);
+  const r = Math.round(p1[0] + (p2[0]-p1[0])*t);
+  const g = Math.round(p1[1] + (p2[1]-p1[1])*t);
+  const b = Math.round(p1[2] + (p2[2]-p1[2])*t);
+  return `rgb(${r},${g},${b})`;
+}
+function parseColor(s) {
+  const c = document.createElement('canvas'); c.width=1; c.height=1;
+  const x = c.getContext('2d'); x.fillStyle=s; x.fillRect(0,0,1,1);
+  const d = x.getImageData(0,0,1,1).data;
+  return [d[0],d[1],d[2]];
+}
+
+// =============================================
+// STARS
+// =============================================
+const STARS = Array.from({length:120}, () => ({
+  x: Math.random(), y: Math.random()*0.45,
+  r: Math.random()*1.2+0.3,
+  twinkle: Math.random()*Math.PI*2
+}));
+
+// =============================================
+// ROAD SCROLL & GAME STATE
+// =============================================
+let roadOffset = 0;
+let totalKm = 0;
+let speed = 80 + Math.random()*20; // km/h
+let targetSpeed = speed;
+let lastTime = null;
+
+// =============================================
+// BILLBOARDS
+// =============================================
+let billboardImages = []; // user-uploaded images
+let billboards = []; // active billboard objects on road
+
+function spawnBillboard() {
+  const side = Math.random() < 0.5 ? 'left' : 'right';
+  const imgIdx = billboardImages.length > 0 ? Math.floor(Math.random()*billboardImages.length) : -1;
+  billboards.push({
+    side,
+    z: 1.0, // perspective z (0=near, 1=far horizon)
+    imgIdx,
+    text: getRandomAdText(),
+  });
+}
+
+const AD_TEXTS = ['ВАШ БРЕНД', 'РЕКЛАМА', 'КУПИ!', 'ЗАХОДИ!', '★ СКИДКИ ★'];
+function getRandomAdText() {
+  return AD_TEXTS[Math.floor(Math.random()*AD_TEXTS.length)];
+}
+
+let bbSpawnTimer = 0;
+const BB_INTERVAL = 4; // seconds between billboard spawns
+
+// =============================================
+// TREES
+// =============================================
+let trees = [];
+function spawnTree(side) {
+  trees.push({ side, z: 1.0, type: Math.random() < 0.7 ? 'pine' : 'birch', h: 0.7+Math.random()*0.6 });
+}
+let treeTimer = 0;
+
+// =============================================
+// WEATHER
+// =============================================
+let weather = 'clear'; // 'clear' | 'rain'
+let weatherTimer = 30 + Math.random()*60;
+let rainDrops = [];
+
+function initRain() {
+  rainDrops = Array.from({length:200}, () => ({
+    x: Math.random()*window.innerWidth,
+    y: Math.random()*window.innerHeight,
+    len: 10+Math.random()*20,
+    speed: 8+Math.random()*10,
+    alpha: 0.3+Math.random()*0.4,
+  }));
+}
+
+// =============================================
+// DRAW FUNCTIONS
+// =============================================
+
+function drawSky(tod) {
+  const W = canvas.width, H = canvas.height;
+  const horizon = H * 0.42;
+
+  // Sky gradient
+  const grad = ctx.createLinearGradient(0,0,0,horizon);
+  grad.addColorStop(0, tod.skyTop);
+  grad.addColorStop(1, tod.skyBot);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,horizon);
+
+  // Horizon glow
+  const hGrad = ctx.createLinearGradient(0, horizon-80, 0, horizon+20);
+  hGrad.addColorStop(0, 'transparent');
+  hGrad.addColorStop(0.5, tod.horizonGlow+'44');
+  hGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = hGrad;
+  ctx.fillRect(0, horizon-80, W, 100);
+
+  // Stars (night/dawn)
+  const phase = (gameTime % TOD_CYCLE) / TOD_CYCLE;
+  const nightAlpha = (phase > 0.75 || phase < 0.08) ? 1 : (phase > 0.65 ? (phase-0.65)/0.1 : Math.max(0, 0.15-(phase-0.08)/0.15));
+  if (nightAlpha > 0) {
+    STARS.forEach(s => {
+      s.twinkle += 0.03;
+      const a = nightAlpha * (0.5 + 0.5*Math.sin(s.twinkle)) * s.r;
+      ctx.beginPath();
+      ctx.arc(s.x*W, s.y*horizon, s.r*0.8, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(220,230,255,${Math.min(1,a)})`;
+      ctx.fill();
+    });
+  }
+
+  // Sun / Moon
+  const sunX = W * (0.5 + 0.35*Math.cos(phase*Math.PI*2));
+  const sunY = horizon * (0.15 + 0.65*Math.abs(Math.sin(phase*Math.PI)));
+  const isNight = phase > 0.7 || phase < 0.1;
+  if (!isNight) {
+    // Sun glow
+    const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 80);
+    sg.addColorStop(0, tod.sunColor+'cc');
+    sg.addColorStop(0.3, tod.sunColor+'44');
+    sg.addColorStop(1, 'transparent');
+    ctx.fillStyle = sg;
+    ctx.fillRect(sunX-80, sunY-80, 160, 160);
+    // Sun disc
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 18, 0, Math.PI*2);
+    ctx.fillStyle = tod.sunColor;
+    ctx.fill();
+  } else {
+    // Moon
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 14, 0, Math.PI*2);
+    ctx.fillStyle = '#e8e8d0';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sunX+6, sunY-3, 11, 0, Math.PI*2);
+    ctx.fillStyle = tod.skyTop;
+    ctx.fill();
+  }
+}
+
+function drawGround(tod) {
+  const W = canvas.width, H = canvas.height;
+  const horizon = H * 0.42;
+
+  // Grass
+  const grassLight = lerp(0.2, 1, tod.ambientLight);
+  const grassG = ctx.createLinearGradient(0, horizon, 0, H);
+  grassG.addColorStop(0, `rgba(${Math.round(20*grassLight)},${Math.round(60*grassLight)},${Math.round(20*grassLight)},1)`);
+  grassG.addColorStop(1, `rgba(${Math.round(10*grassLight)},${Math.round(35*grassLight)},${Math.round(10*grassLight)},1)`);
+  ctx.fillStyle = grassG;
+  ctx.fillRect(0, horizon, W, H-horizon);
+}
+
+function drawRoad(tod) {
+  const W = canvas.width, H = canvas.height;
+  const horizon = H * 0.42;
+  const vp = { x: W/2, y: horizon }; // vanishing point
+
+  // Road polygon (trapezoidal perspective)
+  const nearW = W * 0.72;
+  const farW = W * 0.08;
+  const nearY = H;
+  const farY = horizon;
+
+  const rl = vp.x - nearW/2, rr = vp.x + nearW/2;
+  const fl = vp.x - farW/2, fr = vp.x + farW/2;
+
+  // Asphalt
+  const roadG = ctx.createLinearGradient(0, farY, 0, nearY);
+  const al = lerp(0.25, 1, tod.ambientLight);
+  roadG.addColorStop(0, `rgba(${Math.round(40*al)},${Math.round(40*al)},${Math.round(40*al)},1)`);
+  roadG.addColorStop(1, `rgba(${Math.round(55*al)},${Math.round(55*al)},${Math.round(55*al)},1)`);
+  ctx.fillStyle = roadG;
+  ctx.beginPath();
+  ctx.moveTo(rl, nearY);
+  ctx.lineTo(fl, farY);
+  ctx.lineTo(fr, farY);
+  ctx.lineTo(rr, nearY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Road edge lines
+  ctx.strokeStyle = `rgba(255,255,200,${0.4*al})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(rl, nearY); ctx.lineTo(fl, farY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rr, nearY); ctx.lineTo(fr, farY); ctx.stroke();
+
+  // Center dashes
+  const dashCount = 14;
+  for (let i = 0; i < dashCount; i++) {
+    const t1 = ((i / dashCount) + roadOffset*0.003) % 1;
+    const t2 = (((i+0.5) / dashCount) + roadOffset*0.003) % 1;
+    if (t1 < t2) {
+      const x1 = lerp(vp.x, vp.x, t1); // center stays center
+      const y1 = lerp(nearY, farY, t1);
+      const x2 = lerp(vp.x, vp.x, t2);
+      const y2 = lerp(nearY, farY, t2);
+      const lw = lerp(4, 0.5, t1);
+      const alpha = lerp(0.9, 0.2, t1) * al;
+      ctx.strokeStyle = `rgba(245,197,24,${alpha})`;
+      ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+  }
+
+  // Fog / atmospheric haze at horizon
+  const fogG = ctx.createLinearGradient(0, horizon-10, 0, horizon+40);
+  fogG.addColorStop(0, tod.fogColor);
+  fogG.addColorStop(1, 'transparent');
+  ctx.fillStyle = fogG;
+  ctx.fillRect(0, horizon-10, W, 50);
+}
+
+function lerp(a, b, t) { return a + (b-a)*t; }
+function perspY(z) {
+  const H = canvas.height, horizon = H * 0.42;
+  return lerp(H, horizon, z);
+}
+function perspX(side, z) {
+  const W = canvas.width, vp = W/2;
+  const nearOff = W * 0.38;
+  const farOff = W * 0.06;
+  const off = lerp(nearOff, farOff, z);
+  return side === 'left' ? vp - off : vp + off;
+}
+
+function drawTree(tree, tod) {
+  const W = canvas.width, H = canvas.height, horizon = H * 0.42;
+  if (tree.z < 0.05) return;
+  const y = perspY(tree.z);
+  const x = perspX(tree.side, tree.z);
+  const scale = lerp(1, 0.05, tree.z);
+  const treeH = 120 * scale * tree.h;
+  const al = lerp(1, 0.3, tree.z) * lerp(0.3, 1, tod.ambientLight);
+
+  if (tree.type === 'pine') {
+    // Pine triangle
+    ctx.fillStyle = `rgba(${Math.round(20*al)},${Math.round(70*al)},${Math.round(30*al)},1)`;
+    ctx.beginPath();
+    ctx.moveTo(x, y - treeH);
+    ctx.lineTo(x - treeH*0.35, y);
+    ctx.lineTo(x + treeH*0.35, y);
+    ctx.closePath();
+    ctx.fill();
+    // Trunk
+    ctx.fillStyle = `rgba(${Math.round(60*al)},${Math.round(35*al)},${Math.round(15*al)},1)`;
+    ctx.fillRect(x - treeH*0.04, y, treeH*0.08, treeH*0.18);
+  } else {
+    // Birch
+    ctx.fillStyle = `rgba(${Math.round(180*al)},${Math.round(210*al)},${Math.round(180*al)},0.85)`;
+    ctx.beginPath();
+    ctx.ellipse(x, y - treeH*0.6, treeH*0.28, treeH*0.55, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Trunk
+    ctx.strokeStyle = `rgba(${Math.round(220*al)},${Math.round(220*al)},${Math.round(200*al)},1)`;
+    ctx.lineWidth = Math.max(1, 3*scale);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y-treeH); ctx.stroke();
+  }
+}
+
+function drawBillboard(bb, tod) {
+  if (bb.z < 0.05) return;
+  const y = perspY(bb.z);
+  const x = perspX(bb.side, bb.z);
+  const scale = lerp(1, 0.05, bb.z);
+  const al = lerp(1, 0.2, bb.z);
+  const bW = 140 * scale, bH = 80 * scale;
+  const postH = 80 * scale;
+
+  // Post
+  ctx.fillStyle = `rgba(80,60,40,${al})`;
+  ctx.fillRect(x - 3*scale, y - postH - bH, 6*scale, postH + bH);
+
+  // Board background
+  const bx = x - bW/2, by = y - postH - bH;
+  ctx.fillStyle = `rgba(15,15,25,${al*0.95})`;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bW, bH, 4*scale);
+  ctx.fill();
+
+  // Board border
+  ctx.strokeStyle = `rgba(245,197,24,${al*0.8})`;
+  ctx.lineWidth = 2*scale;
+  ctx.beginPath();
+  ctx.roundRect(bx+1*scale, by+1*scale, bW-2*scale, bH-2*scale, 3*scale);
+  ctx.stroke();
+
+  if (bb.imgIdx >= 0 && billboardImages[bb.imgIdx]) {
+    // Draw user image
+    try {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(bx+2*scale, by+2*scale, bW-4*scale, bH-4*scale, 2*scale);
+      ctx.clip();
+      ctx.globalAlpha = al;
+      ctx.drawImage(billboardImages[bb.imgIdx], bx+2*scale, by+2*scale, bW-4*scale, bH-4*scale);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    } catch(e) {
+      drawBBText(bb, bx, by, bW, bH, scale, al);
+    }
+  } else {
+    drawBBText(bb, bx, by, bW, bH, scale, al);
+  }
+}
+
+function drawBBText(bb, bx, by, bW, bH, scale, al) {
+  ctx.fillStyle = `rgba(245,197,24,${al})`;
+  ctx.font = `bold ${Math.max(8, 16*scale)}px 'Russo One', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(bb.text, bx+bW/2, by+bH/2);
+}
+
+function drawRain(dt) {
+  rctx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+  const W = rainCanvas.width, H = rainCanvas.height;
+  rainDrops.forEach(d => {
+    d.y += d.speed * dt * 60;
+    d.x += 1 * dt * 60;
+    if (d.y > H) { d.y = -d.len; d.x = Math.random()*W; }
+    rctx.beginPath();
+    rctx.moveTo(d.x, d.y);
+    rctx.lineTo(d.x - 2, d.y + d.len);
+    rctx.strokeStyle = `rgba(150,200,255,${d.alpha})`;
+    rctx.lineWidth = 0.8;
+    rctx.stroke();
+  });
+}
+
+// =============================================
+// MAIN LOOP
+// =============================================
+function loop(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime)/1000, 0.05);
+  lastTime = ts;
+
+  // Advance game time
+  gameTime += dt * REAL_SPEED;
+  totalKm += (speed / 3600) * dt;
+
+  // Speed variation
+  targetSpeed += (Math.random()-0.5) * 2;
+  targetSpeed = Math.max(70, Math.min(105, targetSpeed));
+  speed += (targetSpeed - speed) * 0.02;
+
+  // Road scroll
+  roadOffset += dt * speed * 0.5;
+
+  // Billboard spawning
+  bbSpawnTimer += dt;
+  if (bbSpawnTimer >= BB_INTERVAL) {
+    bbSpawnTimer = 0;
+    spawnBillboard();
+    if (Math.random() < 0.5) spawnBillboard();
+  }
+
+  // Tree spawning
+  treeTimer += dt;
+  if (treeTimer > 0.5) {
+    treeTimer = 0;
+    const n = 1 + Math.floor(Math.random()*3);
+    for (let i=0; i<n; i++) {
+      spawnTree('left');
+      spawnTree('right');
+    }
+  }
+
+  // Move billboards
+  const treeSpeed = dt * 0.18;
+  billboards.forEach(b => { b.z -= treeSpeed * (1-b.z*0.5); });
+  billboards = billboards.filter(b => b.z > 0);
+
+  trees.forEach(t => { t.z -= treeSpeed * (1-t.z*0.5); });
+  trees = trees.filter(t => t.z > 0);
+
+  // Weather
+  weatherTimer -= dt;
+  if (weatherTimer <= 0) {
+    weatherTimer = 20 + Math.random()*80;
+    weather = weather === 'clear' ? 'rain' : 'clear';
+    if (weather === 'rain') initRain();
+    rainCanvas.classList.toggle('active', weather === 'rain');
+  }
+
+  // Get TOD
+  const { tod, todNext, f } = getTOD(gameTime);
+  const blended = {
+    skyTop: lerpColor(tod.skyTop, todNext.skyTop, f),
+    skyBot: lerpColor(tod.skyBot, todNext.skyBot, f),
+    horizonGlow: lerpColor(tod.horizonGlow, todNext.horizonGlow, f),
+    sunColor: lerpColor(tod.sunColor, todNext.sunColor, f),
+    ambientLight: lerp(tod.ambientLight, todNext.ambientLight, f),
+    fogColor: tod.fogColor,
+    name: tod.name,
+  };
+
+  // DRAW
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawSky(blended);
+  drawGround(blended);
+
+  // Sort trees & billboards by z (far first)
+  const allObjects = [
+    ...trees.map(t => ({...t, _type:'tree'})),
+    ...billboards.map(b => ({...b, _type:'bb'})),
+  ].sort((a,b) => b.z - a.z);
+
+  drawRoad(blended);
+
+  allObjects.forEach(obj => {
+    if (obj._type === 'tree') drawTree(obj, blended);
+    else drawBillboard(obj, blended);
+  });
+
+  if (weather === 'rain') drawRain(dt);
+
+  // Update HUD
+  document.getElementById('speed-val').textContent = Math.round(speed);
+  document.getElementById('km-val').textContent = Math.round(totalKm);
+  const h = Math.floor((gameTime % 86400) / 3600 + 5) % 24;
+  const m = Math.floor((gameTime % 3600) / 60);
+  document.getElementById('time-val').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  document.getElementById('tod-label').textContent = blended.name;
+
+  requestAnimationFrame(loop);
+}
+
+// Init some trees/billboards off screen
+for (let i=0; i<12; i++) {
+  spawnTree('left'); spawnTree('right');
+}
+for (let i=0; i<4; i++) spawnBillboard();
+
+requestAnimationFrame(loop);
+
+// =============================================
+// MUSIC PLAYER
+// =============================================
+let tracks = [];
+let trackIdx = 0;
+const audio = document.getElementById('audio');
+let isPlaying = false;
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    tracks.push({ name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f) });
+  });
+  if (tracks.length && !isPlaying) loadTrack(0);
+  e.target.value = '';
+});
+
+document.getElementById('upload-btn').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+
+function loadTrack(idx) {
+  if (!tracks.length) return;
+  trackIdx = ((idx % tracks.length) + tracks.length) % tracks.length;
+  audio.src = tracks[trackIdx].url;
+  const tn = document.getElementById('track-name');
+  tn.textContent = '♪ ' + tracks[trackIdx].name;
+  tn.classList.add('show');
+  if (isPlaying) audio.play();
+}
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  if (!tracks.length) { document.getElementById('file-input').click(); return; }
+  if (isPlaying) {
+    audio.pause();
+    isPlaying = false;
+    document.getElementById('play-btn').textContent = '▶';
+  } else {
+    audio.play();
+    isPlaying = true;
+    document.getElementById('play-btn').textContent = '⏸';
+  }
+});
+
+document.getElementById('prev-btn').addEventListener('click', () => loadTrack(trackIdx-1));
+document.getElementById('next-btn').addEventListener('click', () => loadTrack(trackIdx+1));
+audio.addEventListener('ended', () => loadTrack(trackIdx+1));
+
+// =============================================
+// BILLBOARD IMAGE UPLOAD
+// =============================================
+document.getElementById('bb-btn').addEventListener('click', () => {
+  document.getElementById('bb-file').click();
+});
+
+document.getElementById('bb-file').addEventListener('change', e => {
+  Array.from(e.target.files).forEach(f => {
+    const img = new Image();
+    img.src = URL.createObjectURL(f);
+    img.onload = () => billboardImages.push(img);
+  });
+  e.target.value = '';
+});
+
+// =============================================
+// PWA INSTALL
+// =============================================
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const bar = document.getElementById('install-bar');
+  bar.classList.add('show');
+  bar.addEventListener('click', async () => {
+    bar.classList.remove('show');
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  });
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-bar').classList.remove('show');
+});
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
