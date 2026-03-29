@@ -806,29 +806,26 @@ let trackIdx = 0;
 const audio = document.getElementById('audio');
 let isPlaying = false;
 
-// Показать название и загрузить первый трек сразу
-window.addEventListener('load', () => {
-  if (tracks.length) {
-    audio.src = tracks[0].url;
-    const tn = document.getElementById('track-name');
-    tn.textContent = '♪ ' + tracks[0].name;
-    tn.classList.add('show');
-  }
-});
+// Загружаем первый трек сразу
+audio.src = tracks[0].url;
+audio.preload = 'auto';
+document.getElementById('track-name').textContent = '♪ ' + tracks[0].name;
+document.getElementById('track-name').classList.add('show');
 
-// Автозапуск после первого касания
-function tryAutoplay() {
-  if (tracks.length && !isPlaying) {
-    audio.play().then(() => {
-      isPlaying = true;
-      document.getElementById('play-btn').textContent = '⏸';
-    }).catch(() => {});
-  }
-  document.removeEventListener('click', tryAutoplay);
-  document.removeEventListener('touchstart', tryAutoplay);
+// Автозапуск после первого касания пальцем или кликом
+let started = false;
+function tryAutoplay(e) {
+  if (started) return;
+  // не реагируем на кнопки плеера — пусть пользователь сам управляет
+  if (e.target.closest && e.target.closest('#player')) return;
+  started = true;
+  audio.play().then(() => {
+    isPlaying = true;
+    document.getElementById('play-btn').textContent = '⏸';
+  }).catch(() => { started = false; });
 }
+document.addEventListener('touchstart', tryAutoplay, { passive: true });
 document.addEventListener('click', tryAutoplay);
-document.addEventListener('touchstart', tryAutoplay);
 
 document.getElementById('file-input').addEventListener('change', e => {
   const files = Array.from(e.target.files);
