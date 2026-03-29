@@ -795,10 +795,40 @@ requestAnimationFrame(loop);
 // =============================================
 // MUSIC PLAYER
 // =============================================
-let tracks = [];
+
+// --- Предустановленные треки ---
+const PRESET_TRACKS = [
+  { name: 'track1', url: 'music/track1.mp3' },
+];
+
+let tracks = [...PRESET_TRACKS];
 let trackIdx = 0;
 const audio = document.getElementById('audio');
 let isPlaying = false;
+
+// Показать название и загрузить первый трек сразу
+window.addEventListener('load', () => {
+  if (tracks.length) {
+    audio.src = tracks[0].url;
+    const tn = document.getElementById('track-name');
+    tn.textContent = '♪ ' + tracks[0].name;
+    tn.classList.add('show');
+  }
+});
+
+// Автозапуск после первого касания
+function tryAutoplay() {
+  if (tracks.length && !isPlaying) {
+    audio.play().then(() => {
+      isPlaying = true;
+      document.getElementById('play-btn').textContent = '⏸';
+    }).catch(() => {});
+  }
+  document.removeEventListener('click', tryAutoplay);
+  document.removeEventListener('touchstart', tryAutoplay);
+}
+document.addEventListener('click', tryAutoplay);
+document.addEventListener('touchstart', tryAutoplay);
 
 document.getElementById('file-input').addEventListener('change', e => {
   const files = Array.from(e.target.files);
@@ -843,6 +873,15 @@ audio.addEventListener('ended', () => loadTrack(trackIdx+1));
 // =============================================
 // BILLBOARD IMAGE UPLOAD
 // =============================================
+
+// --- Предустановленная реклама ---
+const PRESET_ADS = ['ads/logo1.png'];
+PRESET_ADS.forEach(src => {
+  const img = new Image();
+  img.src = src;
+  img.onload = () => billboardImages.push(img);
+});
+
 document.getElementById('bb-btn').addEventListener('click', () => {
   document.getElementById('bb-file').click();
 });
