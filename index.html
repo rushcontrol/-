@@ -54,7 +54,7 @@
     canvas#road {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      display: block;
     }
 
     /* ===== SPEEDOMETER HUD ===== */
@@ -224,11 +224,11 @@
     #rain-canvas {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; height: 100%;
       pointer-events: none;
       z-index: 50;
       opacity: 0;
       transition: opacity 2s;
+      display: block;
     }
     #rain-canvas.active { opacity: 1; }
 
@@ -317,8 +317,28 @@ function resize() {
   rainCanvas.width = window.innerWidth;
   rainCanvas.height = window.innerHeight;
 }
+
+// roundRect polyfill для старых браузеров
+function roundRect(ctx, x, y, w, h, r) {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, r);
+  } else {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+}
 resize();
 window.addEventListener('resize', resize);
+// Дополнительный вызов после полной загрузки страницы
+window.addEventListener('load', resize);
 
 // =============================================
 // TIME OF DAY SYSTEM
@@ -632,14 +652,14 @@ function drawBillboard(bb, tod) {
   const bx = x - bW/2, by = y - postH - bH;
   ctx.fillStyle = `rgba(15,15,25,${al*0.95})`;
   ctx.beginPath();
-  ctx.roundRect(bx, by, bW, bH, 4*scale);
+  roundRect(ctx, bx, by, bW, bH, 4*scale);
   ctx.fill();
 
   // Board border
   ctx.strokeStyle = `rgba(245,197,24,${al*0.8})`;
   ctx.lineWidth = 2*scale;
   ctx.beginPath();
-  ctx.roundRect(bx+1*scale, by+1*scale, bW-2*scale, bH-2*scale, 3*scale);
+  roundRect(ctx, bx+1*scale, by+1*scale, bW-2*scale, bH-2*scale, 3*scale);
   ctx.stroke();
 
   if (bb.imgIdx >= 0 && billboardImages[bb.imgIdx]) {
@@ -647,7 +667,7 @@ function drawBillboard(bb, tod) {
     try {
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(bx+2*scale, by+2*scale, bW-4*scale, bH-4*scale, 2*scale);
+      roundRect(ctx, bx+2*scale, by+2*scale, bW-4*scale, bH-4*scale, 2*scale);
       ctx.clip();
       ctx.globalAlpha = al;
       ctx.drawImage(billboardImages[bb.imgIdx], bx+2*scale, by+2*scale, bW-4*scale, bH-4*scale);
