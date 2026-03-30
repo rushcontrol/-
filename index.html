@@ -664,165 +664,147 @@ function dCab(am,season){
   cx.clearRect(0,0,W,H);
   const al=C(am*1.1,.25,1);
 
-  // ── DASHBOARD STRIP — compact, bottom 18% only
-  const dTop=H*.82;
-  const dashH=H-dTop;
+  // ── DASHBOARD STRIP — very compact, bottom 9% only
+  const dTop=H*.91;
+  const dashH=H-dTop; // ~9% of H
 
-  // gradient background
+  // Dark dashboard background
   const dg=cx.createLinearGradient(0,dTop,0,H);
-  dg.addColorStop(0,`rgba(28,22,15,${al})`);
-  dg.addColorStop(.4,`rgba(18,14,9,${al})`);
+  dg.addColorStop(0,`rgba(32,26,18,${al})`);
   dg.addColorStop(1,`rgba(8,6,4,${al})`);
   cx.fillStyle=dg;
-  // curved top edge
   cx.beginPath();
   cx.moveTo(0,H);
-  cx.lineTo(0,dTop+H*.04);
-  cx.bezierCurveTo(W*.03,dTop-H*.005,W*.12,dTop-H*.01,W*.22,dTop-H*.01);
-  cx.lineTo(W*.78,dTop-H*.01);
-  cx.bezierCurveTo(W*.88,dTop-H*.01,W*.97,dTop-H*.005,W,dTop+H*.04);
+  cx.lineTo(0,dTop+dashH*.35);
+  cx.bezierCurveTo(W*.05,dTop,W*.15,dTop-dashH*.08,W*.5,dTop-dashH*.1);
+  cx.bezierCurveTo(W*.85,dTop-dashH*.08,W*.95,dTop,W,dTop+dashH*.35);
   cx.lineTo(W,H);
   cx.closePath();cx.fill();
 
-  // thin amber accent line along dash top
-  cx.strokeStyle=`rgba(245,197,24,${al*.22})`;cx.lineWidth=1;
+  // Amber accent line
+  cx.strokeStyle=`rgba(245,197,24,${al*.2})`;cx.lineWidth=1;
   cx.beginPath();
-  cx.moveTo(W*.03,dTop+H*.025);
-  cx.bezierCurveTo(W*.12,dTop-H*.008,W*.2,dTop-H*.008,W*.5,dTop-H*.015);
-  cx.bezierCurveTo(W*.8,dTop-H*.008,W*.88,dTop-H*.008,W*.97,dTop+H*.025);
+  cx.moveTo(W*.05,dTop+dashH*.2);
+  cx.bezierCurveTo(W*.2,dTop-dashH*.05,W*.4,dTop-dashH*.08,W*.5,dTop-dashH*.09);
+  cx.bezierCurveTo(W*.6,dTop-dashH*.08,W*.8,dTop-dashH*.05,W*.95,dTop+dashH*.2);
   cx.stroke();
 
-  // ── INSTRUMENT CLUSTER — centered, compact
-  const clW=W*.5,clH=dashH*.72;
-  const clX=(W-clW)/2,clY=dTop+dashH*.05;
-  cx.fillStyle=`rgba(6,5,3,${al*.92})`;
-  cx.beginPath();rr(cx,clX,clY,clW,clH,H*.016);cx.fill();
-  cx.strokeStyle=`rgba(55,42,25,${al*.7})`;cx.lineWidth=1;
-  cx.beginPath();rr(cx,clX+.5,clY+.5,clW-1,clH-1,H*.016);cx.stroke();
+  // ── INSTRUMENT CLUSTER — thin horizontal strip
+  const clH=dashH*0.75;
+  const clW=W*0.42;
+  const clX=(W-clW)/2;
+  const clY=dTop+dashH*0.04;
+  cx.fillStyle=`rgba(5,4,2,${al*.95})`;
+  cx.beginPath();rr(cx,clX,clY,clW,clH,clH*.3);cx.fill();
+  cx.strokeStyle=`rgba(50,38,22,${al*.6})`;cx.lineWidth=1;
+  cx.beginPath();rr(cx,clX+.5,clY+.5,clW-1,clH-1,clH*.3);cx.stroke();
 
-  // ── SPEEDOMETER — single, centered
-  const spX=W*.5,spY=clY+clH*.45,spR=clH*.4;
+  // ── SPEEDOMETER — small analog gauge
+  const spR=clH*0.38;
+  const spX=W*.5, spY=clY+clH*.5;
   dGauge(spX,spY,spR,al,'КМ/Ч',SP,0,140,7,'#ff5555');
 
-  // ── ODO left of speedo
-  const odoX=clX+clW*.2,odoY=clY+clH*.45;
-  cx.fillStyle=`rgba(3,7,3,${al*.95})`;
-  cx.beginPath();rr(cx,odoX-W*.058,odoY-H*.022,W*.116,H*.038,H*.007);cx.fill();
-  cx.fillStyle=`rgba(72,210,72,${al})`;
-  cx.font=`bold ${H*.022}px 'Share Tech Mono',monospace`;
+  // ── ODO — tiny digital display left of speedo
+  const odoX=clX+clW*.18, odoY=clY+clH*.5;
+  cx.fillStyle=`rgba(3,8,3,${al*.9})`;
+  cx.beginPath();rr(cx,odoX-clW*.1,odoY-clH*.3,clW*.2,clH*.55,clH*.1);cx.fill();
+  cx.fillStyle=`rgba(72,215,72,${al})`;
+  cx.font=`bold ${clH*.32}px 'Share Tech Mono',monospace`;
   cx.textAlign='center';cx.textBaseline='middle';
-  cx.fillText(KM.toFixed(1),odoX,odoY);
-  cx.fillStyle=`rgba(72,210,72,${al*.5})`;
-  cx.font=`${H*.01}px 'Share Tech Mono',monospace`;
-  cx.fillText('КМ',odoX,odoY+H*.024);
+  cx.fillText(KM.toFixed(1),odoX,odoY-clH*.04);
+  cx.fillStyle=`rgba(72,215,72,${al*.45})`;
+  cx.font=`${clH*.14}px 'Share Tech Mono',monospace`;
+  cx.fillText('КМ',odoX,odoY+clH*.3);
 
-  // ── SMALL INFO right of speedo (static, no random needle)
-  const infoX=clX+clW*.8,infoY=clY+clH*.45;
-  // fuel gauge (static cosmetic)
-  cx.fillStyle=`rgba(72,150,255,${al*.45})`;
-  cx.font=`${H*.01}px 'Share Tech Mono',monospace`;
-  cx.textAlign='center';
-  cx.fillText('ТОПЛ.',infoX,infoY-H*.025);
-  // bar
-  const barW=clW*.12,barH=clH*.1;
-  cx.fillStyle=`rgba(20,20,20,${al})`;cx.fillRect(infoX-barW/2,infoY-H*.01,barW,barH);
-  cx.fillStyle=`rgba(72,200,72,${al*.8})`;cx.fillRect(infoX-barW/2+1,infoY-H*.01+1,barW*.72-1,barH-2);
+  // ── FUEL + GEAR — small indicators right of speedo
+  const infoX=clX+clW*.82, infoY=clY+clH*.5;
+  // Fuel bar
+  const bW=clW*.1, bH=clH*.18;
+  cx.fillStyle=`rgba(20,20,20,${al})`;cx.fillRect(infoX-bW/2,infoY-clH*.32,bW,bH);
+  cx.fillStyle=`rgba(60,200,60,${al*.85})`;cx.fillRect(infoX-bW/2+1,infoY-clH*.32+1,(bW-2)*.72,bH-2);
+  cx.fillStyle=`rgba(72,150,255,${al*.4})`;
+  cx.font=`${clH*.13}px 'Share Tech Mono',monospace`;
+  cx.textAlign='center';cx.fillText('ТОПЛ',infoX,infoY-clH*.38);
+  // Gear
+  cx.fillStyle=`rgba(245,197,24,${al*.85})`;
+  cx.font=`bold ${clH*.38}px 'Russo One',sans-serif`;
+  cx.fillText('5',infoX,infoY+clH*.22);
 
-  // gear indicator
-  cx.fillStyle=`rgba(245,197,24,${al*.8})`;
-  cx.font=`bold ${H*.032}px 'Russo One',sans-serif`;
-  cx.fillText('5',infoX,infoY+H*.025);
-  cx.fillStyle=`rgba(180,150,80,${al*.5})`;
-  cx.font=`${H*.009}px 'Share Tech Mono',monospace`;
-  cx.fillText('ПЕРЕДАЧА',infoX,infoY+H*.044);
-
-  // ── STEERING WHEEL — opaque, lower center, rotates
-  const stX=W*.5,stY=H*.97,stR=H*.09;
+  // ── STEERING WHEEL — just the top arc visible at very bottom
+  const stX=W*.5, stY=H+H*.01;  // center below screen, only top arc visible
+  const stR=H*.065;              // small radius
   cx.save();cx.translate(stX,stY);cx.rotate(wheelAngle);
 
-  // shadow
-  cx.beginPath();cx.arc(0,stR*.02,stR,0,Math.PI*2);
-  cx.fillStyle=`rgba(0,0,0,${al*.35})`;cx.fill();
-
-  // outer rim gradient — opaque leather look
-  const rimG=cx.createRadialGradient(-stR*.25,-stR*.25,stR*.05,0,0,stR);
-  rimG.addColorStop(0,`rgba(65,50,36,${al})`);
-  rimG.addColorStop(.6,`rgba(30,23,16,${al})`);
-  rimG.addColorStop(1,`rgba(14,11,7,${al})`);
+  // Shadow
   cx.beginPath();cx.arc(0,0,stR,0,Math.PI*2);
-  cx.strokeStyle=rimG;cx.lineWidth=stR*.22;cx.stroke();
+  cx.fillStyle=`rgba(0,0,0,${al*.3})`;cx.fill();
 
-  // leather texture stitching
-  cx.strokeStyle=`rgba(80,60,38,${al*.6})`;cx.lineWidth=.8;
-  for(let i=0;i<12;i++){
-    const a=i*Math.PI/6;
-    const r1=stR*.82,r2=stR*.92;
-    cx.beginPath();cx.moveTo(Math.cos(a)*r1,Math.sin(a)*r1);cx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);cx.stroke();
-  }
+  // Rim
+  const rimG=cx.createRadialGradient(-stR*.2,-stR*.2,0,0,0,stR);
+  rimG.addColorStop(0,`rgba(70,54,38,${al})`);
+  rimG.addColorStop(.7,`rgba(32,24,16,${al})`);
+  rimG.addColorStop(1,`rgba(12,9,6,${al})`);
+  cx.beginPath();cx.arc(0,0,stR,0,Math.PI*2);
+  cx.strokeStyle=rimG;cx.lineWidth=stR*.2;cx.stroke();
 
-  // spokes — thick, solid
+  // Spokes
   for(let i=0;i<3;i++){
     const a=i*Math.PI*2/3-Math.PI/2;
-    cx.beginPath();cx.moveTo(Math.cos(a)*stR*.12,Math.sin(a)*stR*.12);cx.lineTo(Math.cos(a)*stR*.8,Math.sin(a)*stR*.8);
-    const spkG=cx.createLinearGradient(Math.cos(a)*stR*.1,Math.sin(a)*stR*.1,Math.cos(a)*stR*.82,Math.sin(a)*stR*.82);
-    spkG.addColorStop(0,`rgba(55,44,30,${al})`);spkG.addColorStop(1,`rgba(25,20,13,${al})`);
-    cx.strokeStyle=spkG;cx.lineWidth=stR*.18;cx.stroke();
+    cx.beginPath();
+    cx.moveTo(Math.cos(a)*stR*.12,Math.sin(a)*stR*.12);
+    cx.lineTo(Math.cos(a)*stR*.82,Math.sin(a)*stR*.82);
+    cx.strokeStyle=`rgba(40,30,20,${al})`;cx.lineWidth=stR*.15;cx.stroke();
   }
-  // center boss
-  const bossG=cx.createRadialGradient(-stR*.05,-stR*.05,0,0,0,stR*.15);
-  bossG.addColorStop(0,`rgba(75,60,42,${al})`);bossG.addColorStop(1,`rgba(20,16,10,${al})`);
-  cx.beginPath();cx.arc(0,0,stR*.15,0,Math.PI*2);cx.fillStyle=bossG;cx.fill();
-  // logo dot
-  cx.beginPath();cx.arc(0,0,stR*.045,0,Math.PI*2);cx.fillStyle=`rgba(245,197,24,${al*.85})`;cx.fill();
+  // Hub
+  cx.beginPath();cx.arc(0,0,stR*.13,0,Math.PI*2);
+  cx.fillStyle=`rgba(245,197,24,${al*.8})`;cx.fill();
   cx.restore();
 
-  // ── REARVIEW MIRROR (thin, top center)
-  const mW=W*.085,mH=H*.026,mX=W*.5-mW/2,mY=H*.04;
-  const mirFr=cx.createLinearGradient(mX,mY,mX+mW,mY+mH);
-  mirFr.addColorStop(0,`rgba(10,8,5,${al})`);mirFr.addColorStop(1,`rgba(18,14,9,${al})`);
-  cx.fillStyle=mirFr;cx.fillRect(mX-1,mY-1,mW+2,mH+2);
-  // glass
+  // ── REARVIEW MIRROR — slim, top center
+  const mW=W*.07,mH=H*.018,mX=W*.5-mW/2,mY=H*.038;
+  cx.fillStyle=`rgba(10,8,5,${al})`;cx.fillRect(mX-1,mY-1,mW+2,mH+2);
   const mirG=cx.createLinearGradient(mX,mY,mX+mW,mY+mH);
-  mirG.addColorStop(0,`rgba(55,75,100,${al*.3})`);mirG.addColorStop(1,`rgba(80,110,145,${al*.22})`);
+  mirG.addColorStop(0,`rgba(55,75,100,${al*.28})`);mirG.addColorStop(1,`rgba(80,110,145,${al*.2})`);
   cx.fillStyle=mirG;cx.fillRect(mX,mY,mW,mH);
-  // stem
-  cx.fillStyle=`rgba(22,17,11,${al})`;cx.fillRect(W*.5-2,mY+mH,4,H*.014);
+  cx.fillStyle=`rgba(20,16,10,${al})`;cx.fillRect(W*.5-1.5,mY+mH,3,H*.01);
 
   // ── RAIN ON GLASS + WIPERS
   if(WX==='rain'||wOn){
-    const hor=HOR();
     if(WX==='rain'){
       wDrps.forEach(d=>{
         d.y+=d.sp*.016;
-        if(d.y>.80){Object.assign(d,mwd());d.y=0.48+.005;}
-        if(wOn){const near=Math.abs(d.y-(dTop/H-.018))<.028&&d.x>.04&&d.x<.96;if(near){d.al*=.87;if(d.al<.04)Object.assign(d,mwd());}}
+        if(d.y>.89){Object.assign(d,mwd());d.y=0.49;}
+        if(wOn){const near=Math.abs(d.y-(dTop/H-.02))<.025&&d.x>.05&&d.x<.95;if(near){d.al*=.87;if(d.al<.04)Object.assign(d,mwd());}}
         cx.beginPath();cx.arc(d.x*W,d.y*H,d.r,0,Math.PI*2);cx.fillStyle=`rgba(165,205,235,${d.al})`;cx.fill();
         if(d.tl>0){cx.beginPath();cx.moveTo(d.x*W,d.y*H+d.r);cx.lineTo(d.x*W+.5,d.y*H+d.r+d.tl*H);cx.strokeStyle=`rgba(165,205,235,${d.al*.28})`;cx.lineWidth=d.r*.38;cx.stroke();}
       });
     }
     if(wOn){
       wT+=wD*.055;if(wT>=1){wT=1;wD=-1;}if(wT<=0){wT=0;wD=1;}
-      dWiper(W*.2,dTop+H*.006,L(-Math.PI*.28,-Math.PI*1.04,wT),H*.24);
-      dWiper(W*.8,dTop+H*.006,L(-Math.PI*.72,-Math.PI*.16,wT),H*.24);
+      dWiper(W*.22,dTop+dashH*.02,L(-Math.PI*.28,-Math.PI*1.04,wT),H*.2);
+      dWiper(W*.78,dTop+dashH*.02,L(-Math.PI*.72,-Math.PI*.16,wT),H*.2);
     }
   }
 
-  // ── HOOD (subtle hint at very bottom center)
-  const hoodG=cx.createLinearGradient(0,H*.93,0,H);
-  hoodG.addColorStop(0,`rgba(32,25,17,${al*.5})`);hoodG.addColorStop(1,`rgba(15,12,8,${al*.75})`);
+  // ── HOOD HINT — thin strip at very bottom
+  const hoodG=cx.createLinearGradient(0,H*.96,0,H);
+  hoodG.addColorStop(0,`rgba(28,22,14,${al*.4})`);hoodG.addColorStop(1,`rgba(10,8,5,${al*.6})`);
   cx.fillStyle=hoodG;
-  cx.beginPath();cx.moveTo(W*.3,H);cx.lineTo(W*.34,H*.94);cx.lineTo(W*.66,H*.94);cx.lineTo(W*.7,H);cx.closePath();cx.fill();
-  cx.strokeStyle=`rgba(245,197,24,${al*.08})`;cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(W*.5,H*.94);cx.lineTo(W*.5,H);cx.stroke();
+  cx.beginPath();cx.moveTo(W*.32,H);cx.lineTo(W*.36,H*.97);cx.lineTo(W*.64,H*.97);cx.lineTo(W*.68,H);cx.closePath();cx.fill();
 
-  // ── NIGHT GLOW
+  // Night glow
   if(am<.4){
-    const glow=cx.createRadialGradient(spX,spY,0,spX,spY,spR*1.8);
-    glow.addColorStop(0,`rgba(245,197,24,${(.4-am)*.07})`);glow.addColorStop(1,'transparent');
-    cx.fillStyle=glow;cx.beginPath();cx.arc(spX,spY,spR*1.8,0,Math.PI*2);cx.fill();
+    const glow=cx.createRadialGradient(spX,spY,0,spX,spY,spR*2);
+    glow.addColorStop(0,`rgba(245,197,24,${(.4-am)*.06})`);glow.addColorStop(1,'transparent');
+    cx.fillStyle=glow;cx.beginPath();cx.arc(spX,spY,spR*2,0,Math.PI*2);cx.fill();
   }
 }
 
+  // gradient background
+  const dg=cx.createLinearGradient(0,dTop,0,H);
+  dg.addColorStop(0,`rgba(28,22,15,${al})`);
+  dg.addColorStop(.4,`rgba(18,14,9,${al})`);
+  dg.addColorStop(1,`rgba(8,6,4,${al})`);
 function dGauge(gx,gy,gr,al,label,val,vMin,vMax,ticks,needleColor){
   // background
   cx.beginPath();cx.arc(gx,gy,gr,0,Math.PI*2);
@@ -955,7 +937,7 @@ function loop(ts){
   // from horizon (top) to just above dashboard (bottom = H*0.82)
   rx.save();
   rx.beginPath();
-  rx.rect(0, 0, RC.width, RC.height * 0.82);
+  rx.rect(0, 0, RC.width, RC.height * 0.91);
   rx.clip();
 
   dRoad(am,[...t.fg],season);
