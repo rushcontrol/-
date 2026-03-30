@@ -86,39 +86,55 @@ input[type=file]{display:none}
 
 /* BOTTOM CONTROLS */
 #ctrl-bar{position:absolute;bottom:14px;left:0;right:0;
-  display:flex;align-items:center;justify-content:center;gap:14px;z-index:200}
+  display:flex;align-items:center;justify-content:center;gap:20px;z-index:200}
 
-/* Lane buttons */
-.ln{background:rgba(6,6,16,.9);border:2px solid rgba(255,200,50,.45);
-  border-radius:50%;width:58px;height:58px;display:flex;align-items:center;
-  justify-content:center;cursor:pointer;font-size:24px;color:#f5c518;
-  backdrop-filter:blur(10px);-webkit-tap-highlight-color:transparent;
-  transition:background .1s,transform .1s;box-shadow:0 4px 18px rgba(0,0,0,.5)}
-.ln:active{background:rgba(245,197,24,.2);transform:scale(.93)}
-.ln.dim{opacity:.22;pointer-events:none}
-.ln.active-l{border-color:#f5c518;background:rgba(245,197,24,.08)}
+/* ── JOYSTICK PAD ──────────────────────────────── */
+#ctrl-bar{position:absolute;bottom:12px;left:0;right:0;
+  display:flex;align-items:flex-end;justify-content:center;gap:24px;z-index:200}
 
-/* Headlight button */
-#hlight-btn{background:rgba(6,6,16,.9);border:2px solid rgba(200,220,255,.35);
-  border-radius:50%;width:52px;height:52px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;cursor:pointer;
+/* All direction buttons equal size */
+.jbtn{
+  background:rgba(6,6,16,.9);border:2px solid rgba(255,200,50,.42);
+  border-radius:50%;width:52px;height:52px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:20px;color:#f5c518;
   backdrop-filter:blur(10px);-webkit-tap-highlight-color:transparent;
-  transition:background .15s,border-color .15s;gap:2px}
-#hlight-btn.on{border-color:rgba(200,220,255,.95);background:rgba(180,210,255,.15);
-  box-shadow:0 0 18px rgba(180,210,255,.3)}
-#hlight-btn span.icon{font-size:18px;line-height:1}
-#hlight-btn span.lbl{font-size:7px;letter-spacing:1px;color:rgba(180,210,255,.65)}
-#hlight-btn.on span.lbl{color:rgba(180,210,255,.95)}
+  transition:background .08s,transform .08s;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);user-select:none}
+.jbtn:active{background:rgba(245,197,24,.22);transform:scale(.91)}
+.jbtn.dim{opacity:.22;pointer-events:none}
 
-/* Horn/flash button */
-#horn-btn{background:rgba(6,6,16,.9);border:2px solid rgba(255,220,80,.35);
-  border-radius:50%;width:52px;height:52px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;cursor:pointer;
-  backdrop-filter:blur(10px);-webkit-tap-highlight-color:transparent;
-  transition:background .1s;gap:2px}
-#horn-btn:active,#horn-btn.flash{background:rgba(255,220,80,.2);border-color:rgba(255,220,80,.9)}
-#horn-btn span.icon{font-size:18px;line-height:1}
-#horn-btn span.lbl{font-size:7px;letter-spacing:1px;color:rgba(255,220,80,.6)}
+/* D-pad grid: up in row1 center, left/right in row2, down in row3 center */
+#dpad{display:grid;grid-template-columns:52px 52px 52px;
+  grid-template-rows:52px 52px 52px;gap:4px}
+#dpad .jbtn.up  {grid-column:2;grid-row:1}
+#dpad .jbtn.lft {grid-column:1;grid-row:2}
+#dpad .jbtn.cnt {grid-column:2;grid-row:2;background:rgba(6,6,16,.7);
+  border-style:none;box-shadow:none;cursor:default;pointer-events:none}
+#dpad .jbtn.rgt {grid-column:3;grid-row:2}
+#dpad .jbtn.dn  {grid-column:2;grid-row:3}
+
+/* Horn button — same size as d-pad buttons, self-standing */
+#horn-btn{
+  background:rgba(20,16,4,.92);border:2px solid rgba(255,220,60,.35);
+  border-radius:50%;width:52px;height:52px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;backdrop-filter:blur(12px);
+  -webkit-tap-highlight-color:transparent;
+  transition:background .08s,border-color .1s,box-shadow .1s;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);align-self:center;gap:2px}
+.horn-waves{display:flex;flex-direction:column;gap:2px;align-items:center}
+.horn-wave{height:2px;border-radius:2px;background:rgba(255,220,60,0.45);transition:background .1s,width .1s}
+.horn-wave:nth-child(1){width:18px}.horn-wave:nth-child(2){width:13px}.horn-wave:nth-child(3){width:8px}
+#horn-btn:active .horn-wave,#horn-btn.flash .horn-wave{background:rgba(255,240,80,0.95)}
+#horn-btn:active .horn-wave:nth-child(1),#horn-btn.flash .horn-wave:nth-child(1){width:22px}
+#horn-btn:active .horn-wave:nth-child(2),#horn-btn.flash .horn-wave:nth-child(2){width:17px}
+#horn-btn:active .horn-wave:nth-child(3),#horn-btn.flash .horn-wave:nth-child(3){width:11px}
+#horn-btn:active,#horn-btn.flash{background:rgba(40,30,4,.9);
+  border-color:rgba(255,235,60,.9);box-shadow:0 0 18px rgba(255,220,60,.45)}
+.horn-icon{font-size:14px;line-height:1}
+#horn-btn span.lbl{font-size:6px;letter-spacing:1px;color:rgba(255,220,60,.55)}
+#horn-btn:active span.lbl,#horn-btn.flash span.lbl{color:rgba(255,240,80,.95)}
 
 /* Install */
 #ib{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);
@@ -132,13 +148,6 @@ input[type=file]{display:none}
 #flash{position:absolute;inset:0;background:rgba(255,80,0,0);
   pointer-events:none;z-index:90;transition:background .06s}
 #flash.hit{background:rgba(255,80,0,.35)}
-
-/* Headlight overlay */
-#hlight-overlay{position:absolute;inset:0;pointer-events:none;z-index:30;
-  background:radial-gradient(ellipse 70% 50% at 50% 85%,rgba(220,230,255,.18) 0%,transparent 70%);
-  opacity:0;transition:opacity .8s}
-#hlight-overlay.on{opacity:1}
-
 /* Horn flash effect */
 #horn-flash{position:absolute;inset:0;pointer-events:none;z-index:31;
   background:rgba(255,240,100,0);transition:background .05s}
@@ -187,20 +196,25 @@ input[type=file]{display:none}
   </div>
 
   <div id="ctrl-bar">
-    <div class="ln" id="lft">◀</div>
-    <div id="hlight-btn">
-      <span class="icon">💡</span>
-      <span class="lbl">ФАРЫ</span>
-    </div>
     <div id="horn-btn">
-      <span class="icon">📣</span>
+      <span class="horn-icon">📣</span>
+      <div class="horn-waves">
+        <div class="horn-wave"></div>
+        <div class="horn-wave"></div>
+        <div class="horn-wave"></div>
+      </div>
       <span class="lbl">МОРГНУТЬ</span>
     </div>
-    <div class="ln" id="rgt">▶</div>
+    <div id="dpad">
+      <div class="jbtn up"   id="accel">▲</div>
+      <div class="jbtn lft"  id="lft">◀</div>
+      <div class="jbtn cnt"></div>
+      <div class="jbtn rgt"  id="rgt">▶</div>
+      <div class="jbtn dn"   id="decel">▼</div>
+    </div>
   </div>
 
   <div id="flash"></div>
-  <div id="hlight-overlay"></div>
   <div id="horn-flash"></div>
   <div id="ib">📲 Установить на рабочий стол</div>
 </div>
@@ -253,26 +267,12 @@ const STARS=Array.from({length:120},()=>({x:Math.random(),y:Math.random()*.46,r:
 
 // ═══ GAME STATE ══════════════════════════════════
 let RO=0,KM=0,SP=88,TSP=88,LT=null,killCount=0;
+// Speed target override: player can nudge speed up/down
+let speedBoost=0; // +1 accelerate, -1 brake, 0 normal
 
-// ═══ HEADLIGHTS ══════════════════════════════════
-let hlOn=false,hlAuto=false;
-const hlBtn=document.getElementById('hlight-btn');
-const hlOverlay=document.getElementById('hlight-overlay');
-hlBtn.addEventListener('click',()=>{
-  hlOn=!hlOn;
-  hlBtn.classList.toggle('on',hlOn);
-  hlOverlay.classList.toggle('on',hlOn);
-});
-
-// Auto headlights when ambient < 0.5
-function updateAutoHL(am){
-  const shouldOn=am<0.5;
-  if(shouldOn!==hlAuto){
-    hlAuto=shouldOn;
-    if(shouldOn&&!hlOn){hlOn=true;hlBtn.classList.add('on');hlOverlay.classList.add('on');}
-    else if(!shouldOn&&hlAuto){/* don't auto-off */}
-  }
-}
+// Speed buttons
+document.getElementById('accel').addEventListener('click',()=>{TSP=Math.min(TSP+60,140);});
+document.getElementById('decel').addEventListener('click',()=>{TSP=Math.max(TSP-60,30);});
 
 // ═══ HORN / FLASH ════════════════════════════════
 let hornTimer=0;
@@ -290,19 +290,55 @@ function doHorn(){
 hornBtn.addEventListener('click',doHorn);
 
 function scareNearestCar(){
-  // Find closest car (any lane) in front of player
-  let closest=null,minZ=1;
-  trf.forEach(v=>{
-    if(v.hit)return;
-    const dist=Math.abs(v.z-0.12);
-    if(dist<minZ){minZ=dist;closest=v;}
+  // Only scare cars in OUR direction lanes (2=inner right, 3=outer right)
+  const candidates=trf.filter(v=>
+    !v.hit && !v.scared &&
+    (v.lane===2||v.lane===3) &&  // same-direction lanes only
+    v.z>0.08 && v.z<0.8          // visible range
+  );
+  if(!candidates.length)return;
+  // Pick closest (lowest z = nearest)
+  candidates.sort((a,b)=>a.z-b.z);
+  const scared=candidates[0];
+
+  // Swerve LEFT exactly one lane (always toward oncoming side)
+  const newLane=scared.lane-1; // 2→1 or 3→2
+  if(newLane<0)return;
+
+  const oldLane=scared.lane;
+  scared.lane=newLane;
+  scared.scared=true; // mark so we don't scare it again
+  // Swerve animation: smoothly move to new lane frac
+  // We use swerveTarget to drive lane frac in drawVeh
+  scared.swerveFrom=LANE_FRACS[oldLane];
+  scared.swerveTarget=LANE_FRACS[newLane];
+  scared.swerveT=0; // 0→1 interpolation progress
+
+  // Immediately check if the new lane has a car nearby → chain collision
+  trf.forEach(victim=>{
+    if(victim===scared||victim.hit)return;
+    if(victim.lane===newLane && Math.abs(victim.z-scared.z)<0.20){
+      hitCar(victim, victim.lane<2?-1.5:1.5);
+      // If crash involves oncoming (lane 0 or 1), scared car also crashes
+      if(victim.onc||victim.lane<=1){
+        hitCar(scared, scared.lane<2?-1.2:1.2);
+      }
+    }
   });
-  if(!closest)return;
-  // Make it swerve: if oncoming, swerve to adjacent lane; if same dir, swerve
-  const curIdx=closest.lane;
-  const newIdx=curIdx>0?curIdx-1:curIdx<3?curIdx+1:curIdx;
-  closest.lane=newIdx;
-  closest.swerveAnim=0.5; // swerve animation timer
+}
+
+function hitCar(v, vx){
+  if(v.hit)return;
+  v.hit=true;v.hitTimer=0;
+  v.hx=rX(LANE_FRACS[v.lane],v.z);
+  v.hy=rY(v.z);
+  v.hitVX=vx;
+  killCount++;
+  document.getElementById('kills-num').textContent=killCount;
+  const fe=document.getElementById('flash');
+  fe.classList.add('hit');
+  clearTimeout(fe._t);
+  fe._t=setTimeout(()=>fe.classList.remove('hit'),150);
 }
 
 // ═══ LANES ═══════════════════════════════════════
@@ -315,9 +351,8 @@ let swayAngle=0,swayTgt=0;
 const lftBtn=document.getElementById('lft');
 const rgtBtn=document.getElementById('rgt');
 function updLane(){
-  lftBtn.classList.toggle('dim',playerLaneIdx<=0);
-  rgtBtn.classList.toggle('dim',playerLaneIdx>=3);
-  lftBtn.classList.toggle('active-l',playerLaneIdx<=1);
+  document.getElementById('lft').classList.toggle('dim', playerLaneIdx<=0);
+  document.getElementById('rgt').classList.toggle('dim', playerLaneIdx>=3);
 }
 function moveLeft(){
   if(playerLaneIdx<=0)return;
@@ -337,14 +372,15 @@ updLane();
 addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();moveLeft();}
   else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();moveRight();}
+  else if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();TSP=Math.min(TSP+60,140);}
+  else if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();TSP=Math.max(TSP-60,30);}
   else if(e.key===' '||e.key==='h'||e.key==='H'){e.preventDefault();doHorn();}
-  else if(e.key==='f'||e.key==='F'){e.preventDefault();hlBtn.click();}
 });
 
 // ═══ OBJECTS ═════════════════════════════════════
 // Sparser trees
 let trees=[],tTmr=0;
-const TREE_INT=1.4; // seconds between tree spawns (less frequent)
+const TREE_INT=2.8; // wider gaps between trees
 function spTree(side){trees.push({side,z:1,tp:Math.random()<.65?'p':'b',h:.7+Math.random()*.6});}
 
 let bbImgs=[],bbs=[],bbTmr=0;
@@ -373,7 +409,7 @@ const TRUCK_COLORS=[
   {body:'#27ae60',cab:'#1e4d2b',stripe:'#f1c40f'},
 ];
 let trf=[],trfTmr=0;
-const TRF_INT=3.0;
+const TRF_INT=5.5;  // less frequent traffic
 function spCar(){
   const onc=Math.random()<.42;
   const lane=onc?(Math.random()<.5?0:1):(Math.random()<.5?2:3);
@@ -397,11 +433,7 @@ function checkCol(){
     const laneDist=Math.abs(LANE_FRACS[v.lane]-ourFrac);
     const zDist=Math.abs(v.z-0.09);
     if(laneDist<0.3&&zDist<0.11){
-      v.hit=true;v.hitTimer=0;
-      v.hx=rX(LANE_FRACS[v.lane],v.z);v.hy=rY(v.z);
-      v.hitVX=(v.lane<2?-1:1)*(0.8+Math.random()*0.5);
-      flashEl.classList.add('hit');flashTimer=0.15;
-      killCount++;document.getElementById('kills-num').textContent=killCount;
+      hitCar(v,(v.lane<2?-1:1)*(0.8+Math.random()*0.5));
     }
   });
 }
@@ -416,10 +448,16 @@ function drawVeh(v,am,hlights){
   let vx,vy;
   if(v.hit){vx=v.hx;vy=v.hy;}
   else{
-    // swerve animation
-    const sF=v.swerveAnim>0?Math.sin(v.swerveAnim*Math.PI)*0.15:0;
-    vx=rX(LANE_FRACS[v.lane]+sF,v.z);vy=rY(v.z);
-    if(v.swerveAnim>0)v.swerveAnim=Math.max(0,v.swerveAnim-0.02);
+    // Smooth precise lane interpolation using swerveT
+    if(v.swerveT!==undefined && v.swerveT<1){
+      v.swerveT=Math.min(1, v.swerveT+0.04); // ~25 frames to complete
+      const eased=v.swerveT<0.5?2*v.swerveT*v.swerveT:1-Math.pow(-2*v.swerveT+2,2)/2;
+      const curFrac=L(v.swerveFrom, v.swerveTarget, eased);
+      vx=rX(curFrac, v.z);
+    } else {
+      vx=rX(LANE_FRACS[v.lane], v.z);
+    }
+    vy=rY(v.z);
   }
 
   v.wheelRot+=0.08*(v.onc?1:-1);
@@ -647,11 +685,11 @@ function drawPlayerTruck(am,hlights){
   truckBounce+=0.18*truckBounceDir;
   if(Math.abs(truckBounce)>2.5)truckBounceDir*=-1;
 
-  // Dimensions — chunky monster truck from photo
-  const TW=lW*2.2;   // total width including monster wheels
-  const TH=lW*1.1;   // height of body
-  const BW=lW*1.1;   // body width (narrower than wheel span)
-  const WR=lW*0.52;  // huge knobby wheel radius
+  // Dimensions — 50% smaller: half of one lane width
+  const TW=lW*0.50;   // total width
+  const TH=lW*0.36;   // body height
+  const BW=lW*0.29;   // body/cab width
+  const WR=lW*0.14;   // wheel radius
 
   rx.save();
   rx.translate(basX, basY+truckBounce);
@@ -854,7 +892,125 @@ function dSky(t,n,f,ph){
   }
 }
 
-function dGnd(am,season){
+// ═══ BIPLANE ═════════════════════════════════════
+// Once per game-day (~200s), when daytime (am>0.6), a biplane flies across
+let biplaneX = -999;  // off-screen
+let biplaneY = 0;
+let biplaneActive = false;
+let biplaneTimer = 40 + Math.random()*60; // first appearance delay
+const BIPLANE_BANNER = 'Rush Control';
+
+function updateBiplane(dt, am){
+  if(biplaneActive){
+    biplaneX += dt * RC.width * 0.18; // fly right
+    if(biplaneX > RC.width + 300) {
+      biplaneActive = false;
+      biplaneTimer = 150 + Math.random()*80; // next day
+    }
+  } else {
+    if(am > 0.6){ // only in daytime
+      biplaneTimer -= dt;
+      if(biplaneTimer <= 0){
+        biplaneActive = true;
+        biplaneX = -220;
+        biplaneY = HOR() * (0.12 + Math.random()*0.22);
+      }
+    }
+  }
+}
+
+function dBiplane(){
+  if(!biplaneActive) return;
+  const W=RC.width, H=RC.height;
+  const x=biplaneX, y=biplaneY;
+  const sc=0.7; // scale
+
+  rx.save();
+  rx.translate(x, y);
+
+  // ── FUSELAGE
+  rx.fillStyle='#c8d8e8';
+  rx.beginPath();
+  rx.ellipse(0, 0, 38*sc, 9*sc, 0, 0, Math.PI*2);
+  rx.fill();
+  rx.strokeStyle='#8aa0b8';rx.lineWidth=1;rx.stroke();
+
+  // ── NOSE CONE
+  rx.fillStyle='#aabccc';
+  rx.beginPath();rx.moveTo(38*sc,0);rx.lineTo(28*sc,-5*sc);rx.lineTo(28*sc,5*sc);rx.closePath();rx.fill();
+
+  // ── TAIL FIN (vertical)
+  rx.fillStyle='#b0c4d8';
+  rx.beginPath();rx.moveTo(-32*sc,0);rx.lineTo(-42*sc,-16*sc);rx.lineTo(-28*sc,-2*sc);rx.closePath();rx.fill();
+  // horizontal stabilisers
+  rx.fillStyle='#b8ccd8';
+  rx.beginPath();rx.moveTo(-30*sc,-3*sc);rx.lineTo(-44*sc,-8*sc);rx.lineTo(-44*sc,-2*sc);rx.lineTo(-30*sc,2*sc);rx.closePath();rx.fill();
+  rx.beginPath();rx.moveTo(-30*sc,-3*sc);rx.lineTo(-44*sc,2*sc);rx.lineTo(-44*sc,7*sc);rx.lineTo(-30*sc,3*sc);rx.closePath();rx.fill();
+
+  // ── UPPER WING
+  rx.fillStyle='rgba(180,210,240,0.95)';
+  rx.strokeStyle='#8aa0b8';rx.lineWidth=1;
+  rx.beginPath();rx.moveTo(-10*sc,-9*sc);rx.lineTo(22*sc,-9*sc);rx.lineTo(26*sc,-18*sc);rx.lineTo(-18*sc,-18*sc);rx.closePath();rx.fill();rx.stroke();
+
+  // ── LOWER WING
+  rx.beginPath();rx.moveTo(-8*sc,9*sc);rx.lineTo(20*sc,9*sc);rx.lineTo(24*sc,18*sc);rx.lineTo(-16*sc,18*sc);rx.closePath();rx.fill();rx.stroke();
+
+  // ── WING STRUTS (wires between wings)
+  rx.strokeStyle='rgba(100,130,160,0.7)';rx.lineWidth=1;
+  [[-2*sc,-16*sc,-1*sc,16*sc],[12*sc,-16*sc,10*sc,16*sc]].forEach(([x1,y1,x2,y2])=>{
+    rx.beginPath();rx.moveTo(x1,y1);rx.lineTo(x2,y2);rx.stroke();
+  });
+
+  // ── PROPELLER (spinning)
+  const propAngle=(GT*12)%(Math.PI*2);
+  rx.save();rx.translate(38*sc,0);rx.rotate(propAngle);
+  rx.strokeStyle='rgba(60,60,60,0.8)';rx.lineWidth=3*sc;rx.lineCap='round';
+  rx.beginPath();rx.moveTo(0,-14*sc);rx.lineTo(0,14*sc);rx.stroke();
+  rx.beginPath();rx.moveTo(-4*sc,-10*sc);rx.lineTo(4*sc,10*sc);rx.stroke();
+  rx.restore();
+
+  // ── COCKPIT
+  rx.fillStyle='rgba(100,180,240,0.7)';
+  rx.beginPath();rx.ellipse(8*sc,-6*sc,7*sc,5*sc,0,0,Math.PI*2);rx.fill();
+
+  // ── PILOT HEAD
+  rx.fillStyle='#f0d0a0';
+  rx.beginPath();rx.arc(10*sc,-10*sc,4*sc,0,Math.PI*2);rx.fill();
+  rx.fillStyle='#4a3a2a';
+  rx.beginPath();rx.arc(10*sc,-12*sc,3.5*sc,Math.PI,0);rx.fill(); // goggles/helmet
+
+  // ── BANNER rope
+  const ropeLen=180*sc;
+  rx.strokeStyle='rgba(80,60,40,0.7)';rx.lineWidth=1.5;
+  rx.beginPath();rx.moveTo(-42*sc,4*sc);rx.lineTo(-42*sc-ropeLen,4*sc);rx.stroke();
+
+  // ── BANNER
+  const bx=-42*sc-ropeLen-160*sc;
+  const bw=155*sc, bh=28*sc;
+  // Banner wave effect
+  rx.save();
+  rx.translate(bx, 0);
+  // Wavy banner shape
+  const wave=Math.sin(GT*3)*3*sc;
+  rx.fillStyle='rgba(255,250,220,0.95)';
+  rx.strokeStyle='rgba(180,160,100,0.6)';rx.lineWidth=1;
+  rx.beginPath();
+  rx.moveTo(0,-bh/2);
+  rx.lineTo(bw,-bh/2+wave);
+  rx.lineTo(bw,bh/2+wave);
+  rx.lineTo(0,bh/2);
+  rx.closePath();rx.fill();rx.stroke();
+  // Banner text
+  rx.fillStyle='rgba(20,40,100,0.92)';
+  rx.font=`bold ${14*sc}px 'Russo One',sans-serif`;
+  rx.textAlign='center';rx.textBaseline='middle';
+  rx.fillText(BIPLANE_BANNER, bw/2, wave/2);
+  rx.restore();
+
+  rx.restore();
+}
+
+
   const W=RC.width,H=RC.height,hor=HOR(),g=L(.2,1,am);
   const gc=season.s.gC,gnc=season.nx.gC,sf=season.sf;
   const r0=Math.round(L(gc[0][0],gnc[0][0],sf)*g),g0=Math.round(L(gc[0][1],gnc[0][1],sf)*g),b0=Math.round(L(gc[0][2],gnc[0][2],sf)*g);
@@ -980,7 +1136,8 @@ function loop(ts){
   if(!LT)LT=ts;
   const dt=Math.min((ts-LT)/1000,.05);LT=ts;
   GT+=dt*3;KM+=(SP/3600)*dt;
-  TSP+=(Math.random()-.5)*1.6;TSP=C(TSP,78,108);SP+=(TSP-SP)*.018;
+  TSP=C(TSP,30,140); // clamp with boost applied already above
+  TSP+=(Math.random()-.5)*1.2; TSP=C(TSP,30,140); SP+=(TSP-SP)*.018;
   RO+=dt*SP*.5;seasonT+=dt;
 
   playerLaneFrac+=(playerLaneTgt-playerLaneFrac)*dt*3.2;
@@ -992,18 +1149,16 @@ function loop(ts){
     if(hornTimer<=0){hornBtn.classList.remove('flash');hornFlash.classList.remove('on');}
   }
 
-  // Flash timer
-  if(flashTimer>0){flashTimer-=dt;if(flashTimer<=0){flashEl.classList.remove('hit');flashTimer=0;}}
-
   // Spawn objects — sparser trees
   bbTmr+=dt;if(bbTmr>=BB_INT){bbTmr=0;spBB();}
   tTmr+=dt;if(tTmr>TREE_INT){tTmr=0;spTree('left');spTree('right');} // one per side, not bunches
-  trfTmr+=dt;if(trfTmr>=TRF_INT){trfTmr=0;spCar();if(Math.random()<.3)spCar();}
+  trfTmr+=dt;if(trfTmr>=TRF_INT){trfTmr=0;spCar();}
 
   // Move
   const os=dt*.16;
   bbs.forEach(b=>{b.z-=os*(1-b.z*.35);});bbs=bbs.filter(b=>b.z>0);
-  trees.forEach(t=>{t.z-=os*(1-t.z*.35);});trees=trees.filter(t=>t.z>0);
+  // Trees: slow far away (z≈1), fast when close (z≈0) — correct perspective feel
+  trees.forEach(t=>{t.z-=os*(0.05+(1-t.z)*0.95);});trees=trees.filter(t=>t.z>0);
   trf.forEach(v=>{
     if(v.hit){v.hitTimer+=dt;v.hx+=v.hitVX*dt*RC.width*.65;v.hy+=dt*RC.height*.5;v.z-=dt*.04;}
     else{
@@ -1025,16 +1180,15 @@ function loop(ts){
   const{t,n,f,ph}=gtod(GT);
   const am=L(t.am,n.am,f);
   const season=gSeason(seasonT);
-  updateAutoHL(am);
 
   document.getElementById('tod-chip').textContent=t.n;
   document.getElementById('season-chip').textContent=`${season.s.e} ${season.s.n}`;
   if(season.s.snow>0&&snowF.length===0)initSnow();
 
-  const hlights=hlOn;
-
   rx.clearRect(0,0,RC.width,RC.height);
   dSky(t,n,f,ph);
+  updateBiplane(dt, am);
+  dBiplane();
   dGnd(am,season);
   dRoad(am,[...t.fg],season);
 
@@ -1046,10 +1200,10 @@ function loop(ts){
   all.forEach(o=>{
     if(o._k==='tree')dTree(o,am,season);
     else if(o._k==='bb')dBB(o,am);
-    else drawVeh(o,am,hlights);
+    else drawVeh(o,am,false);
   });
 
-  drawPlayerTruck(am,hlights);
+  drawPlayerTruck(am,false);
 
   if(WX==='rain')dRain(dt);
   dSnow(dt,L(season.s.snow,season.nx.snow,season.sf));
@@ -1062,9 +1216,9 @@ function loop(ts){
 
 // ═══ INIT ════════════════════════════════════════
 initSnow();
-for(let i=0;i<6;i++){spTree('left');spTree('right');}  // sparse start
+for(let i=0;i<4;i++){spTree('left');spTree('right');}
 for(let i=0;i<3;i++)spBB();
-for(let i=0;i<8;i++)spCar();
+for(let i=0;i<4;i++)spCar();
 requestAnimationFrame(loop);
 
 // ═══ MUSIC ═══════════════════════════════════════
