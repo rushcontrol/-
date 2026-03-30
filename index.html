@@ -24,7 +24,7 @@ canvas{position:absolute;top:0;left:0;display:block}
 #wc.on{opacity:1}
 #cc{z-index:70;pointer-events:none}
 #vi{position:absolute;inset:0;
-  background:radial-gradient(ellipse 90% 50% at 50% 60%,transparent 60%,rgba(0,0,0,.5) 100%);
+  background:radial-gradient(ellipse 95% 55% at 50% 45%,transparent 65%,rgba(0,0,0,.45) 100%);
   pointer-events:none;z-index:65}
 
 /* TOP BAR */
@@ -196,16 +196,32 @@ function hRGB(h){return`${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)
 function rr(ctx,x,y,w,h,r){if(typeof ctx.roundRect==='function'){ctx.roundRect(x,y,w,h,r);return;}ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 
 // ── PERSPECTIVE ────────────────────────────────
-// Horizon at 52% — more road visible
-const HOR=()=>RC.height*0.52;
-// Road: 4 lanes × ~3.5m = 14m. At typical truck cab height (~2.5m), 
-// angular width of road at 3m distance fills ~80deg → ~55% of screen width near.
-// Far vanishing to a narrow strip.
-function rHW(z){return L(RC.width*0.44, RC.width*0.022, z);}
-// Vanishing point shifts so OUR lane stays centered on screen
-function getVP(){return RC.width/2 - playerLanePos*rHW(0)*0.5;}
-function rX(f,z){return getVP()+f*rHW(z);}
-function rY(z){return L(RC.height,HOR(),z);}
+// True first-person cab perspective.
+//
+// Objects store .z: 1.0 = far/horizon (just spawned), 0.0 = at camera (clipped)
+// Screen: horizon at 48% height. Road occupies bottom 52%.
+// 4 lanes × 3.5m = 14m. At 10m ahead (bottom of screen), half-width ≈ 35°
+// → covers ~0.62 of half-screen width.
+//
+// Conversion: t = 1 - z (t=0 at horizon/far, t=1 at camera/near)
+// rHW(t): half-road width in pixels, 0 at horizon, max at bottom
+// rY(z):  screen Y, HOR() at z=1(far), RC.height at z=0(near)
+
+const HOR = () => RC.height * 0.48;
+
+// t=1-z: perspective depth (0=vanishing, 1=near bottom of screen)
+function rHW(z) {
+  const t = 1 - z;
+  return t * RC.width * 0.31;   // near half-width = 31% screen (4 lanes at ~10m)
+}
+function rY(z) {
+  const t = 1 - z;
+  return HOR() + t * (RC.height - HOR());  // horizon to bottom
+}
+function rX(worldFrac, z) {
+  const relFrac = worldFrac - playerLanePos;
+  return RC.width / 2 + relFrac * rHW(z);
+}
 
 // ── TOD ────────────────────────────────────────
 const TCYC=600;let GT=0;
@@ -259,7 +275,7 @@ lftBtn.addEventListener('click',()=>{
   if(playerLaneIdx<=0)return;
   playerLaneIdx--;
   playerLaneTgt=LANE_FRACS[playerLaneIdx];
-  wheelTgt=-0.35; // steer left
+  wheelTgt=-0.45; // steer left
   setTimeout(()=>wheelTgt=0,800);
   updLane();
 });
@@ -267,7 +283,7 @@ rgtBtn.addEventListener('click',()=>{
   if(playerLaneIdx>=3)return;
   playerLaneIdx++;
   playerLaneTgt=LANE_FRACS[playerLaneIdx];
-  wheelTgt=0.35; // steer right
+  wheelTgt=0.45; // steer right
   setTimeout(()=>wheelTgt=0,800);
   updLane();
 });
@@ -332,11 +348,10 @@ function checkCol(){
 // ── DRAW VEHICLE ───────────────────────────────
 function drawVeh(v,am,season){
   if(!v.hit&&(v.z>1.06||v.z<.01))return;
-  // Realistic scale: at z=0.1 (close) car appears large, at z=0.9 tiny
-  // Use perspective division: s proportional to 1/z-like mapping
-  const perspScale=L(1, 0.03, v.z);  // linear is fine for this style
-  const s=perspScale;
-  const al=L(1,.22,v.z)*L(.45,1,am);
+  const sc = 1 - v.z;                          // 0=far, 1=near
+  // Lane width at this depth in pixels = rHW(z)*0.5
+  const lW = rHW(v.z) * 0.5;                   // one lane width at vehicle's depth
+  const al = L(.18, 1, sc) * L(.4, 1, am);
   const rgb=hRGB(v.col);
   let sx2,sy2;
   if(v.hit){sx2=v.hx;sy2=v.hy;}
@@ -349,43 +364,44 @@ function drawVeh(v,am,season){
   const snowal=season.s.snow*al*.7;
 
   if(v.tp==='C'){
-    const w=52*s,h=24*s;
+    // Car: body width ~60% of lane, height ~50% of body width
+    const w=lW*0.60, h=lW*0.30;
+    const wR=Math.max(1.5, lW*0.06); // wheel radius
     // body — solid, saturated
     rx.fillStyle=`rgba(${rgb},${Math.min(1,al*1.1)})`;
     rx.fillRect(-w/2,-h,w,h);
-    // roof — slightly lighter
+    // Roof
     const rr2=parseColor(v.col);
     rx.fillStyle=`rgb(${Math.min(255,rr2[0]+30)},${Math.min(255,rr2[1]+30)},${Math.min(255,rr2[2]+30)})`;
     rx.globalAlpha=al*.9;
-    rx.fillRect(-w*.31,-h*1.48,w*.62,h*.54);
+    rx.fillRect(-w*.31,-h*1.48,w*.62,h*.56);
     rx.globalAlpha=1;
-    // windshield — bright blue
+    // Windshield
     rx.fillStyle=`rgba(100,180,240,${al*.75})`;
-    rx.fillRect(-w*.25,-h*1.41,w*.5,h*.43);
-    // wheels — crisp black
+    rx.fillRect(-w*.25,-h*1.41,w*.5,h*.44);
+    // Wheels
     rx.fillStyle=`rgba(15,15,15,${Math.min(1,al*1.2)})`;
-    [-w*.3,w*.3].forEach(wx2=>{rx.beginPath();rx.ellipse(wx2,0,5.5*s,3.2*s,0,0,Math.PI*2);rx.fill();
-      // hub
-      rx.fillStyle=`rgba(180,180,180,${al*.6})`;rx.beginPath();rx.arc(wx2,0,2*s,0,Math.PI*2);rx.fill();
+    [-w*.3,w*.3].forEach(wx2=>{
+      rx.beginPath();rx.ellipse(wx2,0,wR,wR*0.55,0,0,Math.PI*2);rx.fill();
+      rx.fillStyle=`rgba(180,180,180,${al*.6})`;rx.beginPath();rx.arc(wx2,0,wR*0.36,0,Math.PI*2);rx.fill();
       rx.fillStyle=`rgba(15,15,15,${Math.min(1,al*1.2)})`;
     });
-    // lights
+    // Lights
+    const lsz=Math.max(1.5,lW*0.04);
     rx.fillStyle=v.onc?`rgba(255,252,180,${Math.min(1,al*1.3)})`:`rgba(255,40,40,${Math.min(1,al*1.2)})`;
-    rx.fillRect(-w/2,-h*.52,5*s,6*s);
-    rx.fillRect(w/2-5*s,-h*.52,5*s,6*s);
-    // light glow
+    rx.fillRect(-w/2,-h*.52,lsz,lsz*1.2);
+    rx.fillRect(w/2-lsz,-h*.52,lsz,lsz*1.2);
     if(v.onc&&am<.5){
-      const gx2=v.onc?-w/2-2*s:w/2+2*s;
-      [-w/2,w/2-2*s].forEach(lx=>{
-        const lg=rx.createRadialGradient(lx,- h*.49,0,lx,-h*.49,12*s);
-        lg.addColorStop(0,`rgba(255,252,180,${al*.4})`);lg.addColorStop(1,'transparent');
-        rx.fillStyle=lg;rx.beginPath();rx.arc(lx,-h*.49,12*s,0,Math.PI*2);rx.fill();
+      [-w/2+lsz/2, w/2-lsz/2].forEach(lx=>{
+        const lg=rx.createRadialGradient(lx,-h*.48,0,lx,-h*.48,lW*0.18);
+        lg.addColorStop(0,`rgba(255,252,180,${al*.5})`);lg.addColorStop(1,'transparent');
+        rx.fillStyle=lg;rx.fillRect(lx-lW*0.18,rY(v.z)-lW*0.18-h*.48,lW*0.36,lW*0.36);
       });
     }
     if(snowal>0){rx.fillStyle=`rgba(225,238,255,${snowal})`;rx.fillRect(-w*.28,-h*1.5,w*.56,h*.1);}
 
   }else if(v.tp==='T'){
-    const w=68*s,h=35*s,cw=w*.27;
+    const w=lW*0.80, h=lW*0.52, cw=w*.27;
     const cabX=v.onc?w*.22:-w/2;
     // trailer
     rx.fillStyle=`rgba(${rgb},${Math.min(1,al*1.1)})`;rx.fillRect(v.onc?-w/2:-w/2,-h,w*.73,h);
@@ -399,36 +415,35 @@ function drawVeh(v,am,season){
       rx.beginPath();rx.moveTo(-w/2+w*.73*(-pct),-h);rx.lineTo(-w/2+w*.73*(-pct),0);rx.stroke();
     });
     // wheels
+    const tWR=Math.max(1.5, lW*0.07);
     rx.fillStyle=`rgba(15,15,15,${Math.min(1,al*1.2)})`;
     [-w*.35,-w*.05,w*.3].forEach(wx2=>{
-      rx.beginPath();rx.ellipse(wx2,0,7*s,4*s,0,0,Math.PI*2);rx.fill();
-      rx.fillStyle=`rgba(160,160,160,${al*.5})`;rx.beginPath();rx.arc(wx2,0,2.5*s,0,Math.PI*2);rx.fill();
+      rx.beginPath();rx.ellipse(wx2,0,tWR,tWR*0.55,0,0,Math.PI*2);rx.fill();
+      rx.fillStyle=`rgba(160,160,160,${al*.5})`;rx.beginPath();rx.arc(wx2,0,tWR*0.36,0,Math.PI*2);rx.fill();
       rx.fillStyle=`rgba(15,15,15,${Math.min(1,al*1.2)})`;
     });
+    const tlsz=Math.max(1.5,lW*0.05);
     rx.fillStyle=v.onc?`rgba(255,252,180,${Math.min(1,al*1.3)})`:`rgba(255,40,40,${Math.min(1,al*1.2)})`;
-    const lx=v.onc?w/2-6*s:-w/2;rx.fillRect(lx,-h*.48,6*s,9*s);
+    const lx=v.onc?w/2-tlsz:-w/2;rx.fillRect(lx,-h*.48,tlsz,tlsz*1.5);
     if(snowal>0){rx.fillStyle=`rgba(225,238,255,${snowal})`;rx.fillRect(-w*.34,-h*1.02,w*.68,h*.08);}
 
   }else{
-    // motorcycle — clear silhouette
-    const w=16*s,h=21*s;
-    // body/frame
+    // Motorcycle
+    const w=lW*0.22, h=lW*0.36;
+    const mWR=Math.max(1.5, lW*0.06);
     rx.fillStyle=`rgba(${rgb},${Math.min(1,al*1.1)})`;
     rx.fillRect(-w/2,-h*.7,w,h*.3);
-    // rider helmet
     rx.fillStyle=`rgba(30,30,30,${Math.min(1,al*1.1)})`;
     rx.beginPath();rx.arc(0,-h*.9,w*.38,0,Math.PI*2);rx.fill();
-    // rider body
     rx.fillStyle=`rgba(40,40,40,${al})`;
     rx.fillRect(-w*.28,-h*.82,w*.56,h*.35);
-    // wheels
-    rx.strokeStyle=`rgba(15,15,15,${Math.min(1,al*1.2)})`;rx.lineWidth=3*s;
-    [-w*.4,w*.4].forEach(wx2=>{rx.beginPath();rx.arc(wx2,0,6*s,0,Math.PI*2);rx.stroke();
-      rx.fillStyle=`rgba(160,160,160,${al*.5})`;rx.beginPath();rx.arc(wx2,0,1.8*s,0,Math.PI*2);rx.fill();
+    rx.strokeStyle=`rgba(15,15,15,${Math.min(1,al*1.2)})`;rx.lineWidth=Math.max(1.5,lW*0.03);
+    [-w*.4,w*.4].forEach(wx2=>{rx.beginPath();rx.arc(wx2,0,mWR,0,Math.PI*2);rx.stroke();
+      rx.fillStyle=`rgba(160,160,160,${al*.5})`;rx.beginPath();rx.arc(wx2,0,mWR*0.35,0,Math.PI*2);rx.fill();
     });
-    // lights
+    const mlsz=Math.max(1,lW*0.03);
     rx.fillStyle=v.onc?`rgba(255,252,180,${Math.min(1,al*1.3)})`:`rgba(255,40,40,${Math.min(1,al*1.2)})`;
-    rx.fillRect(v.onc?w/2-3*s:-w/2,-h*.55,3*s,4*s);
+    rx.fillRect(v.onc?w/2-mlsz:-w/2,-h*.55,mlsz,mlsz*1.3);
   }
   rx.restore();
 }
@@ -468,7 +483,9 @@ function dGnd(am,season){
   const r1=Math.round(L(gc[1][0],gnc[1][0],sf)*g),g1=Math.round(L(gc[1][1],gnc[1][1],sf)*g),b1=Math.round(L(gc[1][2],gnc[1][2],sf)*g);
   const gg=rx.createLinearGradient(0,hor,0,H);
   gg.addColorStop(0,`rgb(${r0},${g0},${b0})`);gg.addColorStop(1,`rgb(${r1},${g1},${b1})`);
+  // Full ground rectangle below horizon
   rx.fillStyle=gg;rx.fillRect(0,hor,W,H-hor);
+  // Verge strips outside road (same grass colour but we just leave the full rect)
 }
 
 // ── DRAW ROAD ──────────────────────────────────
@@ -476,77 +493,125 @@ function dRoad(am,fg,season){
   const W=RC.width,H=RC.height,hor=HOR();
   const al=L(.25,1,am);
   const rc=season.s.rC;
-  // asphalt
+
+  // z=1 → far/horizon, z=0.02 → near bottom of screen
+  const zFar=0.98, zNear=0.02;
+
+  // Asphalt trapezoid
   rx.fillStyle=`rgba(${Math.round(rc[0]*al)},${Math.round(rc[1]*al)},${Math.round(rc[2]*al)},1)`;
-  rx.beginPath();rx.moveTo(rX(-1,0),H);rx.lineTo(rX(-1,1),hor);rx.lineTo(rX(1,1),hor);rx.lineTo(rX(1,0),H);rx.closePath();rx.fill();
+  rx.beginPath();
+  rx.moveTo(rX(-1,zNear),rY(zNear));
+  rx.lineTo(rX(-1,zFar), rY(zFar));
+  rx.lineTo(rX( 1,zFar), rY(zFar));
+  rx.lineTo(rX( 1,zNear),rY(zNear));
+  rx.closePath();rx.fill();
 
-  // road edges
-  rx.strokeStyle=`rgba(240,235,195,${.38*al})`;rx.lineWidth=2.5;
-  rx.beginPath();rx.moveTo(rX(-1,0),H);rx.lineTo(rX(-1,1),hor);rx.stroke();
-  rx.beginPath();rx.moveTo(rX(1,0),H);rx.lineTo(rX(1,1),hor);rx.stroke();
+  // Shoulder lines
+  rx.strokeStyle=`rgba(240,235,195,${.45*al})`;rx.lineWidth=2.5;
+  rx.beginPath();rx.moveTo(rX(-1,zNear),rY(zNear));rx.lineTo(rX(-1,zFar),rY(zFar));rx.stroke();
+  rx.beginPath();rx.moveTo(rX( 1,zNear),rY(zNear));rx.lineTo(rX( 1,zFar),rY(zFar));rx.stroke();
 
-  // CENTER DIVIDER — solid double white line (opposing traffic)
-  rx.strokeStyle=`rgba(255,255,255,${.6*al})`;rx.lineWidth=2;
-  rx.beginPath();rx.moveTo(rX(-.04,0),H);rx.lineTo(rX(-.04,1),hor);rx.stroke();
-  rx.beginPath();rx.moveTo(rX(.04,0),H);rx.lineTo(rX(.04,1),hor);rx.stroke();
+  // Centre double white divider
+  rx.strokeStyle=`rgba(255,255,255,${.65*al})`;rx.lineWidth=2;
+  rx.beginPath();rx.moveTo(rX(-.03,zNear),rY(zNear));rx.lineTo(rX(-.03,zFar),rY(zFar));rx.stroke();
+  rx.beginPath();rx.moveTo(rX( .03,zNear),rY(zNear));rx.lineTo(rX( .03,zFar),rY(zFar));rx.stroke();
 
-  // Lane dashes — 4 lanes at fracs: -0.75,-0.25,+0.25,+0.75
-  // Inner lane boundaries at -0.5 (between oncoming lanes) and +0.5 (between our lanes)
-  // Draw dashes between lanes within same direction
+  // Lane dashes (at ±0.5 frac, within each direction)
   [-.5, .5].forEach(lf=>{
-    for(let i=0;i<18;i++){
-      const t0=((i/18)+RO*.0022)%1,t1=(((i+.4)/18)+RO*.0022)%1;
-      if(t0>=t1)return;
-      const y0=L(H,hor,t0),y1=L(H,hor,t1);
-      const x0=rX(lf,t0),x1=rX(lf,t1);
-      const vis=lf>0?1:.5;
-      rx.strokeStyle=`rgba(245,197,24,${L(.85,.08,t0)*al*vis})`;
-      rx.lineWidth=L(3.5,.38,t0);
-      rx.beginPath();rx.moveTo(x0,y0);rx.lineTo(x1,y1);rx.stroke();
+    const vis=lf>0?1:.5;
+    for(let i=0;i<20;i++){
+      // z goes from zNear(near) to zFar(far), scrolling
+      const base=((i/20)+RO*0.0025)%1;
+      const z0=L(zNear,zFar, base);
+      const z1=L(zNear,zFar, Math.min(base+0.022, 0.98));
+      if(z1>=z0)continue;
+      const t0=1-z0, t1=1-z1; // perspective depth
+      rx.strokeStyle=`rgba(245,197,24,${t0*0.9*al*vis})`;
+      rx.lineWidth=t0*4.5;
+      rx.beginPath();rx.moveTo(rX(lf,z0),rY(z0));rx.lineTo(rX(lf,z1),rY(z1));rx.stroke();
     }
   });
 
-  // fog
-  const ff=rx.createLinearGradient(0,hor-4,0,hor+22);
-  ff.addColorStop(0,`rgba(${fg[0]},${fg[1]},${fg[2]},${fg[3]})`);ff.addColorStop(1,'transparent');
-  rx.fillStyle=ff;rx.fillRect(0,hor-4,W,26);
+  // Horizon fog
+  const ff=rx.createLinearGradient(0,hor-8,0,hor+35);
+  ff.addColorStop(0,`rgba(${fg[0]},${fg[1]},${fg[2]},${fg[3]*1.8})`);
+  ff.addColorStop(1,'transparent');
+  rx.fillStyle=ff;rx.fillRect(0,hor-8,W,43);
 }
 
 // ── DRAW TREE ──────────────────────────────────
 function dTree(t,am,season){
-  if(t.z<.03)return;
-  const y=rY(t.z),hw=rHW(t.z),pad=L(20,1,t.z);
-  const vp=getVP();
-  const x=t.s==='left'?vp-hw-pad:vp+hw+pad;
-  const s=L(1,.03,t.z),tH=110*s*t.h;
-  const al=L(1,.18,t.z)*L(.3,1,am);
+  if(t.z<.03||t.z>1.0)return;
+  const groundY = rY(t.z);   // Y of tree base on road level
+  const hor = HOR();
+  // Skip if base is above horizon (shouldn't happen) or far below dash
+  if(groundY < hor - 5) return;
+
+  // Scale: (1-z) gives 0 at horizon, 1 at camera
+  const sc = 1 - t.z;
+  // Tree height in screen pixels:
+  // A 15m pine at medium distance should be clearly taller than horizon.
+  // Road section from horizon to bottom = H*0.52 px.
+  // At z=0.5: sc=0.5, groundY = hor + 0.5*(H-hor)
+  // We want tree top to be ~0.4*H above its base → tH = 0.4*H*sc
+  const tH = RC.height * 0.55 * sc * t.h;
+
+  const edgeFrac = t.s==='left' ? -1 : 1;
+  // Place tree slightly outside road edge, scaled with perspective
+  const pad = sc * RC.width * 0.04;
+  const edgeX = rX(edgeFrac, t.z);
+  const x = t.s==='left' ? edgeX - pad : edgeX + pad;
+
+  const al = L(.15, 1, sc) * L(.3, 1, am);
   const tc=season.s.tC,tnc=season.nx.tC,sf=season.sf;
   const tr=Math.round(L(tc[0][0],tnc[0][0],sf)*al);
   const tg=Math.round(L(tc[0][1],tnc[0][1],sf)*al);
   const tb=Math.round(L(tc[0][2],tnc[0][2],sf)*al);
+
   if(t.tp==='p'){
+    // Pine — triangle, slightly tapered
     rx.fillStyle=`rgba(${tr},${tg},${tb},1)`;
-    rx.beginPath();rx.moveTo(x,y-tH);rx.lineTo(x-tH*.35,y);rx.lineTo(x+tH*.35,y);rx.closePath();rx.fill();
+    rx.beginPath();
+    rx.moveTo(x, groundY-tH);
+    rx.lineTo(x - tH*0.32, groundY);
+    rx.lineTo(x + tH*0.32, groundY);
+    rx.closePath();rx.fill();
+    // Mid layer for depth
+    rx.fillStyle=`rgba(${Math.round(tr*0.8)},${Math.round(tg*1.1)},${Math.round(tb*0.8)},0.5)`;
+    rx.beginPath();
+    rx.moveTo(x, groundY-tH*0.55);
+    rx.lineTo(x - tH*0.28, groundY-tH*0.15);
+    rx.lineTo(x + tH*0.28, groundY-tH*0.15);
+    rx.closePath();rx.fill();
+    // Snow cap
     if(season.s.snow>0){
-      rx.fillStyle=`rgba(220,235,255,${season.s.snow*al*.88})`;
-      rx.beginPath();rx.moveTo(x,y-tH);rx.lineTo(x-tH*.14,y-tH*.58);rx.lineTo(x+tH*.14,y-tH*.58);rx.closePath();rx.fill();
+      rx.fillStyle=`rgba(220,235,255,${season.s.snow*al*.9})`;
+      rx.beginPath();rx.moveTo(x,groundY-tH);rx.lineTo(x-tH*.13,groundY-tH*.6);rx.lineTo(x+tH*.13,groundY-tH*.6);rx.closePath();rx.fill();
     }
-    rx.fillStyle=`rgba(${Math.round(46*al)},${Math.round(24*al)},${Math.round(8*al)},1)`;
-    rx.fillRect(x-tH*.04,y,tH*.08,tH*.15);
+    // Trunk
+    const trunkW = Math.max(1.5, tH*0.05);
+    rx.fillStyle=`rgba(${Math.round(55*al)},${Math.round(30*al)},${Math.round(10*al)},1)`;
+    rx.fillRect(x-trunkW/2, groundY, trunkW, tH*0.12);
   }else{
-    rx.fillStyle=`rgba(${tr},${tg},${tb},0.9)`;
-    rx.beginPath();rx.ellipse(x,y-tH*.56,tH*.24,tH*.47,0,0,Math.PI*2);rx.fill();
-    rx.strokeStyle=`rgba(${Math.round(195*al)},${Math.round(195*al)},${Math.round(175*al)},1)`;
-    rx.lineWidth=Math.max(1,2.5*s);rx.beginPath();rx.moveTo(x,y);rx.lineTo(x,y-tH);rx.stroke();
+    // Deciduous — oval crown
+    rx.fillStyle=`rgba(${tr},${tg},${tb},0.92)`;
+    rx.beginPath();rx.ellipse(x, groundY-tH*0.6, tH*0.28, tH*0.48, 0, 0, Math.PI*2);rx.fill();
+    // Trunk
+    const trunkW = Math.max(1.5, sc*RC.width*0.006);
+    rx.strokeStyle=`rgba(${Math.round(200*al)},${Math.round(180*al)},${Math.round(150*al)},1)`;
+    rx.lineWidth=trunkW;
+    rx.beginPath();rx.moveTo(x,groundY);rx.lineTo(x,groundY-tH*0.18);rx.stroke();
   }
 }
 
 // ── DRAW BILLBOARD ─────────────────────────────
 function dBB(b,am){
   if(b.z<.03)return;
-  const y=rY(b.z),hw=rHW(b.z),pad=L(82,6,b.z);
-  const vp=getVP();
-  const x=b.side==='L'?vp-hw-pad:vp+hw+pad;
+  const y=rY(b.z);
+  const edgeFrac=b.side==='L'?-1:1;
+  const pad=L(75,5,b.z);
+  const edgeX=rX(edgeFrac,b.z);
+  const x=b.side==='L'?edgeX-pad:edgeX+pad;
   const s=L(1,.03,b.z),al=L(1,.07,b.z);
   const bW=152*s,bH=86*s,pH=60*s;
   rx.fillStyle=`rgba(58,44,26,${al})`;rx.fillRect(x-3*s,y-pH-bH,5*s,pH+bH);
@@ -599,8 +664,8 @@ function dCab(am,season){
   cx.clearRect(0,0,W,H);
   const al=C(am*1.1,.25,1);
 
-  // ── DASHBOARD STRIP (bottom ~22% of screen only)
-  const dTop=H*.78;
+  // ── DASHBOARD STRIP — compact, bottom 18% only
+  const dTop=H*.82;
   const dashH=H-dTop;
 
   // gradient background
@@ -672,7 +737,7 @@ function dCab(am,season){
   cx.fillText('ПЕРЕДАЧА',infoX,infoY+H*.044);
 
   // ── STEERING WHEEL — opaque, lower center, rotates
-  const stX=W*.5,stY=H*.955,stR=H*.1;
+  const stX=W*.5,stY=H*.97,stR=H*.09;
   cx.save();cx.translate(stX,stY);cx.rotate(wheelAngle);
 
   // shadow
@@ -712,7 +777,7 @@ function dCab(am,season){
   cx.restore();
 
   // ── REARVIEW MIRROR (thin, top center)
-  const mW=W*.085,mH=H*.028,mX=W*.5-mW/2,mY=H*.035;
+  const mW=W*.085,mH=H*.026,mX=W*.5-mW/2,mY=H*.04;
   const mirFr=cx.createLinearGradient(mX,mY,mX+mW,mY+mH);
   mirFr.addColorStop(0,`rgba(10,8,5,${al})`);mirFr.addColorStop(1,`rgba(18,14,9,${al})`);
   cx.fillStyle=mirFr;cx.fillRect(mX-1,mY-1,mW+2,mH+2);
@@ -729,8 +794,8 @@ function dCab(am,season){
     if(WX==='rain'){
       wDrps.forEach(d=>{
         d.y+=d.sp*.016;
-        if(d.y>.76){Object.assign(d,mwd());d.y=hor/H+.005;}
-        if(wOn){const near=Math.abs(d.y-(dTop/H-.025))<.032&&d.x>.04&&d.x<.96;if(near){d.al*=.87;if(d.al<.04)Object.assign(d,mwd());}}
+        if(d.y>.80){Object.assign(d,mwd());d.y=0.48+.005;}
+        if(wOn){const near=Math.abs(d.y-(dTop/H-.018))<.028&&d.x>.04&&d.x<.96;if(near){d.al*=.87;if(d.al<.04)Object.assign(d,mwd());}}
         cx.beginPath();cx.arc(d.x*W,d.y*H,d.r,0,Math.PI*2);cx.fillStyle=`rgba(165,205,235,${d.al})`;cx.fill();
         if(d.tl>0){cx.beginPath();cx.moveTo(d.x*W,d.y*H+d.r);cx.lineTo(d.x*W+.5,d.y*H+d.r+d.tl*H);cx.strokeStyle=`rgba(165,205,235,${d.al*.28})`;cx.lineWidth=d.r*.38;cx.stroke();}
       });
@@ -742,13 +807,13 @@ function dCab(am,season){
     }
   }
 
-  // ── HOOD (subtle, just a hint at very bottom center)
-  const hoodG=cx.createLinearGradient(0,H*.89,0,H);
-  hoodG.addColorStop(0,`rgba(32,25,17,${al*.65})`);hoodG.addColorStop(1,`rgba(15,12,8,${al*.8})`);
+  // ── HOOD (subtle hint at very bottom center)
+  const hoodG=cx.createLinearGradient(0,H*.93,0,H);
+  hoodG.addColorStop(0,`rgba(32,25,17,${al*.5})`);hoodG.addColorStop(1,`rgba(15,12,8,${al*.75})`);
   cx.fillStyle=hoodG;
-  cx.beginPath();cx.moveTo(W*.28,H);cx.lineTo(W*.33,H*.9);cx.lineTo(W*.67,H*.9);cx.lineTo(W*.72,H);cx.closePath();cx.fill();
-  cx.strokeStyle=`rgba(245,197,24,${al*.1})`;cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(W*.5,H*.9);cx.lineTo(W*.5,H);cx.stroke();
+  cx.beginPath();cx.moveTo(W*.3,H);cx.lineTo(W*.34,H*.94);cx.lineTo(W*.66,H*.94);cx.lineTo(W*.7,H);cx.closePath();cx.fill();
+  cx.strokeStyle=`rgba(245,197,24,${al*.08})`;cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(W*.5,H*.94);cx.lineTo(W*.5,H);cx.stroke();
 
   // ── NIGHT GLOW
   if(am<.4){
@@ -840,17 +905,17 @@ function loop(ts){
   RO+=dt*SP*.5;
   seasonT+=dt;
 
-  // smooth lane + wheel
-  playerLanePos+=((playerLaneTgt-playerLanePos))*dt*2.4;
-  wheelAngle+=(wheelTgt-wheelAngle)*dt*4;
+  // smooth lane + wheel — faster lane change (1.8s to complete)
+  playerLanePos+=(playerLaneTgt-playerLanePos)*dt*3.0;
+  wheelAngle+=(wheelTgt-wheelAngle)*dt*5.0;
 
   // spawn
   bbTmr+=dt;if(bbTmr>=BB_INT){bbTmr=0;spBB();}
   tTmr+=dt;if(tTmr>.38){tTmr=0;const n=1+Math.floor(Math.random()*3);for(let i=0;i<n;i++){spTree('left');spTree('right');}}
   trfTmr+=dt;if(trfTmr>=TRF_INT){trfTmr=0;spCar();if(Math.random()<.3)spCar();}
 
-  // move
-  const os=dt*.14;
+  // move — slightly faster scroll for more road sense of speed
+  const os=dt*.16;
   bbs.forEach(b=>{b.z-=os*(1-b.z*.35);});bbs=bbs.filter(b=>b.z>0);
   trees.forEach(t=>{t.z-=os*(1-t.z*.35);});trees=trees.filter(t=>t.z>0);
   trf.forEach(v=>{
@@ -886,10 +951,18 @@ function loop(ts){
   dSky(t,n,f,ph);
   dGnd(am,season);
 
-  // No translate — VP moves with player lane so road stays straight ahead
+  // Clip all road drawing to the visible window zone:
+  // from horizon (top) to just above dashboard (bottom = H*0.82)
+  rx.save();
+  rx.beginPath();
+  rx.rect(0, 0, RC.width, RC.height * 0.82);
+  rx.clip();
+
   dRoad(am,[...t.fg],season);
   const all=[...trees.map(o=>({...o,_k:'tree'})),...bbs.map(o=>({...o,_k:'bb'})),...trf.map(o=>({...o,_k:'car'}))].sort((a,b)=>b.z-a.z);
   all.forEach(o=>{if(o._k==='tree')dTree(o,am,season);else if(o._k==='bb')dBB(o,am);else drawVeh(o,am,season);});
+
+  rx.restore();
 
   if(WX==='rain')dRain(dt);
   dSnow(dt,L(season.s.snow,season.nx.snow,season.sf));
