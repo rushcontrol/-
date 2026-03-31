@@ -271,8 +271,8 @@ let RO=0,KM=0,SP=88,TSP=88,LT=null,killCount=0;
 let speedBoost=0; // +1 accelerate, -1 brake, 0 normal
 
 // Speed buttons
-document.getElementById('accel').addEventListener('click',()=>{TSP=Math.min(TSP+60,140);});
-document.getElementById('decel').addEventListener('click',()=>{TSP=Math.max(TSP-60,30);});
+document.getElementById('accel').addEventListener('click',()=>{TSP=C(TSP+60,30,199);});
+document.getElementById('decel').addEventListener('click',()=>{TSP=C(TSP-60,30,199);});
 
 // ═══ HORN / FLASH ════════════════════════════════
 let hornTimer=0;
@@ -372,15 +372,15 @@ updLane();
 addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();moveLeft();}
   else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();moveRight();}
-  else if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();TSP=Math.min(TSP+60,140);}
-  else if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();TSP=Math.max(TSP-60,30);}
+  else if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();TSP=C(TSP+60,30,199);}
+  else if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();TSP=C(TSP-60,30,199);}
   else if(e.key===' '||e.key==='h'||e.key==='H'){e.preventDefault();doHorn();}
 });
 
 // ═══ OBJECTS ═════════════════════════════════════
 // Sparser trees
 let trees=[],tTmr=0;
-const TREE_INT=2.8; // wider gaps between trees
+const TREE_INT=8.4;  // 3× sparser trees
 function spTree(side){trees.push({side,z:1,tp:Math.random()<.65?'p':'b',h:.7+Math.random()*.6});}
 
 let bbImgs=[],bbs=[],bbTmr=0;
@@ -409,17 +409,18 @@ const TRUCK_COLORS=[
   {body:'#27ae60',cab:'#1e4d2b',stripe:'#f1c40f'},
 ];
 let trf=[],trfTmr=0;
-const TRF_INT=5.5;  // less frequent traffic
+const TRF_INT=8.2;  // 2× more traffic than before
 function spCar(){
   const onc=Math.random()<.42;
   const lane=onc?(Math.random()<.5?0:1):(Math.random()<.5?2:3);
   const tp=Math.random()<.16?'T':(Math.random()<.10?'M':'C');
   const ci=Math.floor(Math.random()*(tp==='T'?TRUCK_COLORS.length:CAR_COLORS.length));
-  trf.push({onc,lane,tp,ci,
-    z:onc?1:C(Math.random()*.75+.15,.15,.9),
-    vz:onc?(.18+Math.random()*.14):(.03+Math.random()*.045),
-    hit:false,hitTimer:0,hitVX:0,hx:0,hy:0,spinAngle:0,swerveAnim:0,
-    wheelRot:Math.random()*Math.PI*2,  // for rotating wheels
+  // Poputnye: strictly 50-80 km/h, vstrechnye: 80-120 km/h
+  const kmh=onc?(80+Math.random()*40):(50+Math.random()*30);
+  trf.push({onc,lane,tp,ci,kmh,
+    z:0.97,  // always spawn at horizon
+    hit:false,hitTimer:0,hitVX:0,hx:0,hy:0,spinAngle:0,
+    wheelRot:Math.random()*Math.PI*2,
   });
 }
 
@@ -902,7 +903,7 @@ const BIPLANE_BANNER = 'Rush Control';
 
 function updateBiplane(dt, am){
   if(biplaneActive){
-    biplaneX += dt * RC.width * 0.18; // fly right
+    biplaneX += dt * RC.width * 0.22; // fly right
     if(biplaneX > RC.width + 300) {
       biplaneActive = false;
       biplaneTimer = 150 + Math.random()*80; // next day
@@ -923,7 +924,7 @@ function dBiplane(){
   if(!biplaneActive) return;
   const W=RC.width, H=RC.height;
   const x=biplaneX, y=biplaneY;
-  const sc=0.7; // scale
+  const sc=1.4; // scale ×2
 
   rx.save();
   rx.translate(x, y);
@@ -1010,7 +1011,7 @@ function dBiplane(){
   rx.restore();
 }
 
-
+function dGnd(am,season){
   const W=RC.width,H=RC.height,hor=HOR(),g=L(.2,1,am);
   const gc=season.s.gC,gnc=season.nx.gC,sf=season.sf;
   const r0=Math.round(L(gc[0][0],gnc[0][0],sf)*g),g0=Math.round(L(gc[0][1],gnc[0][1],sf)*g),b0=Math.round(L(gc[0][2],gnc[0][2],sf)*g);
@@ -1043,9 +1044,11 @@ function dRoad(am,fg,season){
   [-.5,.5].forEach(lf=>{
     const vis=lf>0?1:.5;
     for(let i=0;i<20;i++){
-      const base=((i/20)+RO*0.0025)%1;
-      const z0=L(zNear,zFar,base),z1=L(zNear,zFar,Math.min(base+0.022,0.98));
-      if(z1<=z0)continue;
+      // base goes 0→1 as RO grows; invert so dashes flow FROM horizon TOWARD camera
+      const base=1-((i/20)+RO*0.0025)%1;
+      const z0=L(zNear,zFar,base);
+      const z1=L(zNear,zFar,Math.min(base+0.022,0.98));
+      if(z0>=z1||z0<zNear)continue;
       const t0=1-z0;
       rx.strokeStyle=`rgba(245,197,24,${t0*0.88*al*vis})`;rx.lineWidth=t0*4.2;
       rx.beginPath();rx.moveTo(rX(lf,z0),rY(z0));rx.lineTo(rX(lf,z1),rY(z1));rx.stroke();
@@ -1136,9 +1139,10 @@ function loop(ts){
   if(!LT)LT=ts;
   const dt=Math.min((ts-LT)/1000,.05);LT=ts;
   GT+=dt*3;KM+=(SP/3600)*dt;
-  TSP=C(TSP,30,140); // clamp with boost applied already above
-  TSP+=(Math.random()-.5)*1.2; TSP=C(TSP,30,140); SP+=(TSP-SP)*.018;
-  RO+=dt*SP*.5;seasonT+=dt;
+  // Player speed: smoothly approach target, range 30-199
+  SP+=(TSP-SP)*.025;
+  SP=C(SP,30,199);
+  RO+=dt*SP*2.5;seasonT+=dt;
 
   playerLaneFrac+=(playerLaneTgt-playerLaneFrac)*dt*3.2;
   swayAngle+=(swayTgt-swayAngle)*dt*5;
@@ -1154,16 +1158,32 @@ function loop(ts){
   tTmr+=dt;if(tTmr>TREE_INT){tTmr=0;spTree('left');spTree('right');} // one per side, not bunches
   trfTmr+=dt;if(trfTmr>=TRF_INT){trfTmr=0;spCar();}
 
-  // Move
-  const os=dt*.16;
-  bbs.forEach(b=>{b.z-=os*(1-b.z*.35);});bbs=bbs.filter(b=>b.z>0);
-  // Trees: slow far away (z≈1), fast when close (z≈0) — correct perspective feel
-  trees.forEach(t=>{t.z-=os*(0.05+(1-t.z)*0.95);});trees=trees.filter(t=>t.z>0);
+  // Move — road scrolls at player speed, objects at their own absolute speeds
+  // Perspective z-scale: objects near camera (z≈0) move fast, far (z≈1) slow
+  const pScale = (z) => 0.05 + (1-z)*0.95;
+  const spd = SP/3600; // player speed in units/sec base
+
+  // Road scroll for static objects (trees, billboards) = player speed
+  const os = dt * spd * 2.75;
+  bbs.forEach(b=>{b.z -= os*pScale(b.z);});bbs=bbs.filter(b=>b.z>0);
+  trees.forEach(t=>{t.z -= os*pScale(t.z);});trees=trees.filter(t=>t.z>0);
+
   trf.forEach(v=>{
-    if(v.hit){v.hitTimer+=dt;v.hx+=v.hitVX*dt*RC.width*.65;v.hy+=dt*RC.height*.5;v.z-=dt*.04;}
-    else{
-      if(v.onc)v.z-=v.vz*dt*(1-v.z*.22);
-      else{const rel=SP/3600-v.vz*28/3600;v.z-=rel*dt*.4;}
+    if(v.hit){
+      v.hitTimer+=dt;
+      v.hx+=v.hitVX*dt*RC.width*.65;
+      v.hy+=dt*RC.height*.5;
+      v.z-=dt*.04;
+    } else {
+      // Vehicle moves at absolute speed v.kmh regardless of player
+      // From player's perspective, relative speed = SP±v.kmh
+      // But we render in player's reference frame:
+      // same dir: player gains (SP-kmh) on vehicle → positive = vehicle moves back
+      // oncoming: closing speed = SP+kmh
+      const carSpd = v.kmh/3600;
+      const relSpd = v.onc ? (spd + carSpd) : (spd - carSpd);
+      const dz = dt * relSpd * 2.75;
+      v.z -= dz * pScale(v.z);
     }
   });
   trf=trf.filter(v=>v.z>-.3&&v.z<1.05&&(!v.hit||v.hitTimer<1.5));
